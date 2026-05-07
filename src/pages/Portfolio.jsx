@@ -2,8 +2,8 @@ import Layout from '../components/Layout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useAi } from '../context/AiContext.jsx';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, RadialBarChart, RadialBar, Legend, ReferenceDot } from 'recharts';
-import CoinDashAI from '../components/ai/CoinDashAI';
 import './Portfolio.css';
 
 // Animation Variants
@@ -296,8 +296,7 @@ const faqData = [
 
 const Portfolio = () => {
   const [openItem, setOpenItem] = useState(null);
-  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
-  const openAiModal = () => setIsAIModalOpen(true);
+  const { openAiModal } = useAi();
   const { openWalletModal } = useAuth();
   const timeFilters = ['24H', '1W', '1M', '3M', '6M', '1Y', 'ALL'];
   const activeFilter = '24H';
@@ -1825,15 +1824,6 @@ const Portfolio = () => {
         </div>
       </motion.div>
 
-      {/* CoinDash AI Modal */}
-      <AnimatePresence>
-        {isAIModalOpen && (
-          <CoinDashAI
-            key="coindash-ai-modal"
-            onClose={() => setIsAIModalOpen(false)}
-          />
-        )}
-      </AnimatePresence>
     </Layout>
   </div>
   );

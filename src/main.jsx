@@ -5,15 +5,18 @@ import App from './App.jsx'
 import { CryptoProvider } from './context/CryptoContext.jsx'
 import { SearchProvider } from './context/SearchContext.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
+import { AiProvider } from './context/AiContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <BrowserRouter>
-    <SearchProvider>
-      <CryptoProvider>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </CryptoProvider>
-    </SearchProvider>
+    <AiProvider>
+      <SearchProvider>
+        <CryptoProvider>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </CryptoProvider>
+      </SearchProvider>
+    </AiProvider>
   </BrowserRouter>
 )
