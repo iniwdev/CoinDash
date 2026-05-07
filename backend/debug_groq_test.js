@@ -1,0 +1,10 @@
+require('dotenv').config();
+const Groq = require('groq-sdk');
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+console.log('keys', Object.keys(groq));
+console.log('has completions', typeof groq.completions);
+console.log('has chat', typeof groq.chat);
+console.log('has completions.create', typeof groq.completions.create);
+console.log('has chat.completions.create', typeof groq.chat.completions.create);
+console.log(groq.chat ? Object.keys(groq.chat) : 'no chat');
+console.log(groq.completions ? Object.keys(groq.completions) : 'no completions');

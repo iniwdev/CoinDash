@@ -65,6 +65,7 @@ const CoinDashAI = ({ onClose }) => {
     if (!message || isLoading) return;
 
     const userMessage = {
+      id: Date.now(),
       role: "user",
       content: message,
       time: new Date().toLocaleTimeString([], {
@@ -73,44 +74,42 @@ const CoinDashAI = ({ onClose }) => {
       }),
     };
 
+    const updatedHistory = [
+      ...conversationHistory,
+      { role: "user", content: message },
+    ];
+
     setMessages((prev) => [...prev, userMessage]);
-
-    const currentInput = message;
-
+    setConversationHistory(updatedHistory);
     setInputValue("");
     setIsLoading(true);
 
     try {
       console.log("Sending request...");
 
-      const response = await fetch(
-        "http://localhost:5000/api/ai/chat",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            message: currentInput,
-          }),
-        }
-      );
+      const response = await fetch("http://localhost:5000/api/ai/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message,
+        }),
+      });
 
       console.log("Response status:", response.status);
 
-      if (!response.ok) {
-        throw new Error("Server error");
-      }
-
       const data = await response.json();
-
       console.log("AI data:", data);
 
+      if (!response.ok) {
+        throw new Error(data.reply || data.error || "Server error");
+      }
+
       const aiMessage = {
+        id: Date.now() + 1,
         role: "assistant",
-        content:
-          data.reply ||
-          "CoinDash AI could not generate a response.",
+        content: data.reply || "CoinDash AI failed to respond.",
         time: new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
@@ -118,15 +117,17 @@ const CoinDashAI = ({ onClose }) => {
       };
 
       setMessages((prev) => [...prev, aiMessage]);
+      setConversationHistory((prev) => [...prev, { role: "assistant", content: aiMessage.content }]);
     } catch (error) {
       console.error("AI Error:", error);
+      const errorMessage = error?.message || "CoinDash AI failed to respond.";
 
       setMessages((prev) => [
         ...prev,
         {
+          id: Date.now() + 1,
           role: "assistant",
-          content:
-            "Server connection failed. Please check backend and API route.",
+          content: errorMessage,
           time: new Date().toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",

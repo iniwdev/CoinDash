@@ -1,12 +1,21 @@
 const express = require("express");
-
 const router = express.Router();
+const Groq = require("groq-sdk");
+
+if (!process.env.GROQ_API_KEY) {
+  throw new Error("Missing GROQ_API_KEY. Please set GROQ_API_KEY in backend/.env.");
+}
+
+console.log("GROQ_API_KEY loaded in aiRoutes:", Boolean(process.env.GROQ_API_KEY));
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
 
 router.post("/chat", async (req, res) => {
   try {
-    console.log("Request body:", req.body);
-
     const { message } = req.body;
+    console.log("AI request received:", { message });
 
     if (!message) {
       return res.status(400).json({
@@ -14,38 +23,44 @@ router.post("/chat", async (req, res) => {
       });
     }
 
-    const lower = message.toLowerCase();
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are CoinDash AI, a professional crypto portfolio assistant. Give intelligent, detailed, human-like responses.",
+        },
+        {
+          role: "user",
+          content: message,
+        },
+      ],
+      model: "openai/gpt-oss-120b",
+      temperature: 0.3,
+      max_tokens: 512,
+      top_p: 0.95,
+    });
 
-    let reply = "";
+    console.log("GROQ response:", completion);
 
-    if (lower.includes("bitcoin")) {
-      reply =
-        "Bitcoin is currently the largest cryptocurrency by market capitalization.";
-    } else if (lower.includes("ethereum")) {
-      reply =
-        "Ethereum powers smart contracts, DeFi, and NFT ecosystems.";
-    } else if (lower.includes("solana")) {
-      reply =
-        "Solana is known for high-speed blockchain transactions and low fees.";
-    } else if (lower.includes("portfolio")) {
-      reply =
-        "Diversification and proper risk management improve portfolio stability.";
-    } else if (lower.includes("price")) {
-      reply =
-        "Crypto prices are highly volatile and influenced by market sentiment.";
-    } else {
-      reply =
-        "CoinDash AI can help with crypto markets, DeFi, wallets, NFTs, and portfolio analytics.";
+    const reply =
+      completion.choices[0]?.message?.content ||
+      completion.choices[0]?.message?.reasoning ||
+      completion.choices[0]?.text;
+    if (!reply) {
+      console.error("GROQ returned no reply", completion);
+      return res.status(502).json({
+        reply: "CoinDash AI failed to respond.",
+      });
     }
 
     res.json({
       reply,
     });
   } catch (error) {
-    console.error("AI Route Error:", error);
-
+    console.error("AI ERROR:", error);
     res.status(500).json({
-      reply: "Internal server error",
+      reply: "CoinDash AI failed to respond.",
     });
   }
 });
