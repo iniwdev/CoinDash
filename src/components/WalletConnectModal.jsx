@@ -134,41 +134,41 @@ const WalletConnectModal = () => {
                 {/* LEFT SECTION: WALLET SELECTION */}
                 <div className="flex flex-col overflow-hidden">
                   {/* HEADER - FIXED */}
-                  <div className="relative z-10 flex-shrink-0 border-b border-white/10 bg-[#0b1221]/95 backdrop-blur px-6 py-6 sm:px-8 sm:py-8">
-                    <div className="space-y-3">
-                      <h2 className="text-3xl font-semibold text-white sm:text-4xl pr-16">
+                  <div className="relative z-10 flex-shrink-0 border-b border-white/10 bg-[#0b1221]/95 backdrop-blur px-6 py-4 sm:px-8 sm:py-5">
+                    <div className="space-y-2">
+                      <h2 className="text-2xl font-semibold text-white sm:text-3xl pr-16 leading-tight">
                         Connect your wallet and sync every holding.
                       </h2>
-                      <p className="max-w-2xl text-slate-400 leading-relaxed">
+                      <p className="max-w-2xl text-slate-400 text-sm leading-relaxed">
                         Choose from {wallets.length}+ wallet providers with read-only access. All transactions are encrypted and secure.
                       </p>
                     </div>
                   </div>
 
                   {/* SEARCH - FIXED */}
-                  <div className="relative z-10 flex-shrink-0 border-b border-white/10 bg-[#0b1221]/95 backdrop-blur px-6 py-4 sm:px-8">
+                  <div className="relative z-10 flex-shrink-0 border-b border-white/10 bg-[#0b1221]/95 backdrop-blur px-6 py-3 sm:px-8">
                     <div className="relative">
-                      <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+                      <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                       <input
                         type="text"
                         placeholder="Search wallets..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 rounded-2xl border border-white/10 bg-slate-950/50 text-white placeholder-slate-500 focus:outline-none focus:border-orange-400/60 focus:ring-2 focus:ring-orange-400/15 transition-all"
+                        className="w-full pl-11 pr-4 py-2.5 rounded-2xl border border-white/10 bg-slate-950/50 text-white placeholder-slate-500 focus:outline-none focus:border-orange-400/60 focus:ring-2 focus:ring-orange-400/15 transition-all text-sm"
                       />
                     </div>
                   </div>
 
                   {/* FILTER TABS - FIXED */}
-                  <div className="relative z-10 flex-shrink-0 border-b border-white/10 bg-[#0b1221]/95 backdrop-blur px-6 py-3 sm:px-8">
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap gap-2">
-                        <span className="text-xs uppercase tracking-[0.3em] text-slate-500 w-full mb-1">Category</span>
+                  <div className="relative z-10 flex-shrink-0 border-b border-white/10 bg-[#0b1221]/95 backdrop-blur px-6 py-2 sm:px-8">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className="text-xs uppercase tracking-[0.3em] text-slate-500 w-full mb-0.5">Category</span>
                         {categories.map((cat) => (
                           <button
                             key={cat}
                             onClick={() => setSelectedCategory(cat)}
-                            className={`px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-[0.2em] transition ${
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.2em] transition ${
                               selectedCategory === cat
                                 ? 'bg-orange-500/20 text-orange-300 border border-orange-400/40'
                                 : 'bg-white/5 text-slate-400 border border-white/10 hover:border-orange-400/30'
@@ -178,13 +178,13 @@ const WalletConnectModal = () => {
                           </button>
                         ))}
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        <span className="text-xs uppercase tracking-[0.3em] text-slate-500 w-full mb-1">Blockchain</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className="text-xs uppercase tracking-[0.3em] text-slate-500 w-full mb-0.5">Blockchain</span>
                         {chains.map((chain) => (
                           <button
                             key={chain}
                             onClick={() => setSelectedChain(chain)}
-                            className={`px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-[0.2em] transition ${
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.2em] transition ${
                               selectedChain === chain
                                 ? 'bg-purple-500/20 text-purple-300 border border-purple-400/40'
                                 : 'bg-white/5 text-slate-400 border border-white/10 hover:border-purple-400/30'
@@ -198,7 +198,7 @@ const WalletConnectModal = () => {
                   </div>
 
                   {/* WALLET GRID - SCROLLABLE ONLY THIS SECTION */}
-                  <div className="flex-1 overflow-y-auto px-6 py-6 sm:px-8">
+                  <div className="flex-1 overflow-y-auto px-6 py-4 sm:px-8">
                     {loading ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
                         {Array.from({ length: 8 }).map((_, i) => (
