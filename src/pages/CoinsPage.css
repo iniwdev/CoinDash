@@ -1,5 +1,9 @@
+/* Coins page root - prevent horizontal overflow */
 .coins-page {
   position: relative;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 .coins-page__hero {
@@ -24,7 +28,11 @@
   gap: 2rem;
 }
 
+/* Table wrapper - only table area scrolls if needed */
 .coins-page__table-wrapper {
   display: grid;
   gap: 1.5rem;
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 20px;
 }

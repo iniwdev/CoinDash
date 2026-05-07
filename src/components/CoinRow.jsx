@@ -53,7 +53,7 @@ const CoinRow = ({ coin, isFavorite, onToggleFavorite, chartData }) => {
       className="border-b border-white/10 transition hover:bg-white/5 cursor-pointer"
       onClick={() => navigate(`/coin/${coin.id}`)}
     >
-      <td className="px-4 py-4 min-w-0 overflow-hidden text-center text-slate-400 text-sm">
+      <td className="px-2 py-3 min-w-0 overflow-hidden text-center text-slate-400 text-sm">
         <button
           type="button"
           onClick={(event) => {
@@ -66,43 +66,43 @@ const CoinRow = ({ coin, isFavorite, onToggleFavorite, chartData }) => {
           ★
         </button>
       </td>
-      <td className="px-4 py-4 min-w-0 overflow-hidden text-sm font-semibold text-white">{coin.rank}</td>
-      <td className="px-4 py-4 min-w-0 overflow-hidden">
-        <div className="flex items-center gap-3">
+      <td className="px-2 py-3 min-w-0 overflow-hidden text-sm font-semibold text-white">{coin.rank}</td>
+      <td className="px-2 py-3 min-w-0 overflow-hidden">
+        <div className="flex items-center gap-2">
           {coin.icon ? (
             <img
               src={coin.icon}
               alt={coin.name}
-              className="h-10 w-10 rounded-full object-cover"
+              className="h-8 w-8 rounded-full object-cover flex-shrink-0"
               onError={(event) => {
                 event.target.src = "https://via.placeholder.com/40";
               }}
             />
           ) : (
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-slate-300">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-slate-300 flex-shrink-0">
               {coin.symbol?.slice(0, 2).toUpperCase()}
             </div>
           )}
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-white">{coin.name}</p>
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{coin.symbol}</p>
+            <p className="text-sm font-semibold text-white truncate">{coin.name}</p>
+            <p className="text-xs uppercase tracking-[0.18em] text-slate-500 truncate">{coin.symbol}</p>
           </div>
         </div>
       </td>
-      <td className={`px-4 py-4 min-w-0 overflow-hidden text-right text-sm font-semibold ${changeColor(coin.priceChange1h)}`}>
+      <td className={`px-2 py-3 min-w-0 overflow-hidden text-right text-sm font-semibold ${changeColor(coin.priceChange1h)}`}>
         {formatChange(coin.priceChange1h)}
       </td>
-      <td className={`px-4 py-4 min-w-0 overflow-hidden text-right text-sm font-semibold ${changeColor(coin.priceChange24h)}`}>
+      <td className={`px-2 py-3 min-w-0 overflow-hidden text-right text-sm font-semibold ${changeColor(coin.priceChange24h)}`}>
         {formatChange(coin.priceChange24h)}
       </td>
-      <td className={`px-4 py-4 min-w-0 overflow-hidden text-right text-sm font-semibold ${changeColor(coin.priceChange7d)}`}>
+      <td className={`px-2 py-3 min-w-0 overflow-hidden text-right text-sm font-semibold ${changeColor(coin.priceChange7d)}`}>
         {formatChange(coin.priceChange7d)}
       </td>
-      <td className="px-4 py-4 min-w-0 overflow-hidden text-right text-sm font-semibold text-white">{formatPrice(coin.price)}</td>
-      <td className="px-4 py-4 min-w-0 overflow-hidden text-right text-sm text-slate-300">{formatLarge(coin.marketCap)}</td>
-      <td className="px-4 py-4 min-w-0 overflow-hidden text-right text-sm text-slate-300">{formatLarge(coin.volume)}</td>
-      <td className="px-4 py-4 min-w-[160px] w-[160px] overflow-hidden">
-        <div className="w-full h-12">
+      <td className="px-2 py-3 min-w-0 overflow-hidden text-right text-sm font-semibold text-white">{formatPrice(coin.price)}</td>
+      <td className="px-2 py-3 min-w-0 overflow-hidden text-right text-sm text-slate-300">{formatLarge(coin.marketCap)}</td>
+      <td className="px-2 py-3 min-w-0 overflow-hidden text-right text-sm text-slate-300">{formatLarge(coin.volume)}</td>
+      <td className="px-2 py-3 min-w-[100px] w-[100px] overflow-hidden">
+        <div className="w-full h-10">
           {displayChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={displayChartData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>

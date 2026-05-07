@@ -38,46 +38,46 @@ const CoinsTable = ({ coins: propCoins, loading: propLoading, error: propError, 
         <table className="w-full table-fixed">
           <thead className="bg-slate-950/80 text-slate-400 text-[11px] uppercase tracking-[0.24em]">
             <tr>
-              <th className="w-[60px] px-4 py-4 text-left">⭐</th>
-              <th className="w-[60px] px-4 py-4 text-left">Rank</th>
-              <th className="w-[200px] px-4 py-4 text-left">Name</th>
-              <th className="w-[100px] px-4 py-4 text-right">1H</th>
-              <th className="w-[100px] px-4 py-4 text-right">24H</th>
-              <th className="w-[100px] px-4 py-4 text-right">7D</th>
-              <th className="w-[120px] px-4 py-4 text-right">Price</th>
-              <th className="w-[140px] px-4 py-4 text-right">Market Cap</th>
-              <th className="w-[140px] px-4 py-4 text-right">Volume</th>
-              <th className="w-[160px] px-4 py-4 text-center">Graph</th>
+              <th className="w-[40px] px-2 py-3 text-left">⭐</th>
+              <th className="w-[40px] px-2 py-3 text-left">Rank</th>
+              <th className="w-[140px] px-2 py-3 text-left">Name</th>
+              <th className="w-[70px] px-2 py-3 text-right">1H</th>
+              <th className="w-[70px] px-2 py-3 text-right">24H</th>
+              <th className="w-[70px] px-2 py-3 text-right">7D</th>
+              <th className="w-[90px] px-2 py-3 text-right">Price</th>
+              <th className="w-[100px] px-2 py-3 text-right">Market Cap</th>
+              <th className="w-[100px] px-2 py-3 text-right">Volume</th>
+              <th className="w-[100px] px-2 py-3 text-center">Graph</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
             {loading ? (
               Array.from({ length: 10 }).map((_, index) => (
                 <tr key={index} className="animate-pulse border-b border-white/5 last:border-b-0">
-                  <td className="px-4 py-4">{formatSkeletonCell()}</td>
-                  <td className="px-4 py-4">{formatSkeletonCell()}</td>
-                  <td className="px-4 py-4 space-y-2">
+                  <td className="px-2 py-3">{formatSkeletonCell()}</td>
+                  <td className="px-2 py-3">{formatSkeletonCell()}</td>
+                  <td className="px-2 py-3 space-y-2">
                     <div className="h-4 rounded bg-slate-800 w-32" />
                     <div className="h-3 rounded bg-slate-800 w-16" />
                   </td>
-                  <td className="px-4 py-4">{formatSkeletonCell()}</td>
-                  <td className="px-4 py-4">{formatSkeletonCell()}</td>
-                  <td className="px-4 py-4">{formatSkeletonCell()}</td>
-                  <td className="px-4 py-4">{formatSkeletonCell()}</td>
-                  <td className="px-4 py-4">{formatSkeletonCell()}</td>
-                  <td className="px-4 py-4">{formatSkeletonCell()}</td>
-                  <td className="px-4 py-4">{formatSkeletonCell()}</td>
+                  <td className="px-2 py-3">{formatSkeletonCell()}</td>
+                  <td className="px-2 py-3">{formatSkeletonCell()}</td>
+                  <td className="px-2 py-3">{formatSkeletonCell()}</td>
+                  <td className="px-2 py-3">{formatSkeletonCell()}</td>
+                  <td className="px-2 py-3">{formatSkeletonCell()}</td>
+                  <td className="px-2 py-3">{formatSkeletonCell()}</td>
+                  <td className="px-2 py-3">{formatSkeletonCell()}</td>
                 </tr>
               ))
             ) : error ? (
               <tr>
-                <td colSpan={10} className="px-4 py-12 text-center text-rose-300">
+                <td colSpan={10} className="px-2 py-12 text-center text-rose-300">
                   {error}
                 </td>
               </tr>
             ) : coins.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-4 py-12 text-center text-slate-400">
+                <td colSpan={10} className="px-2 py-12 text-center text-slate-400">
                   No coins found.
                 </td>
               </tr>
