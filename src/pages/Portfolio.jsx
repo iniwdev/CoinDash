@@ -297,6 +297,7 @@ const faqData = [
 const Portfolio = () => {
   const [openItem, setOpenItem] = useState(null);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const openAiModal = () => setIsAIModalOpen(true);
   const { openWalletModal } = useAuth();
   const timeFilters = ['24H', '1W', '1M', '3M', '6M', '1Y', 'ALL'];
   const activeFilter = '24H';
@@ -666,12 +667,16 @@ const Portfolio = () => {
                     <p className="mt-8 text-[11px] uppercase tracking-[0.35em] text-slate-400">LIVE</p>
                     <p className="mt-4 text-sm uppercase tracking-[0.35em] text-slate-500">Portfolio Sync</p>
                     <h2 className="mt-3 text-3xl font-semibold text-white">CoinDash AI unifies every account</h2>
-                    <div className="mt-8 inline-flex items-center rounded-full bg-slate-950/90 px-8 py-4 text-sm font-semibold text-white border border-white/10 shadow-[0_16px_40px_-24px_rgba(255,255,255,0.18)]">
+                    <button
+                      type="button"
+                      onClick={openAiModal}
+                      className="mt-8 relative z-20 inline-flex items-center rounded-full bg-slate-950/90 px-8 py-4 text-sm font-semibold text-white border border-white/10 shadow-[0_16px_40px_-24px_rgba(255,255,255,0.18)] pointer-events-auto"
+                    >
                       CoinDash AI
                       <svg className="ml-3 h-5 w-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                       </svg>
-                    </div>
+                    </button>
                   </div>
 
                   <div className="absolute top-8 left-10 flex items-center gap-3">
@@ -1009,10 +1014,7 @@ const Portfolio = () => {
                   <button
                     type="button"
                     className="coindash-ai-btn inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-purple-500 via-orange-500 to-purple-500 rounded-full text-white font-bold text-base hover:shadow-[0_0_40px_rgba(168,85,247,0.4)] hover:scale-105 transition-all duration-300"
-                    onClick={() => {
-                      console.log("CoinDash AI clicked");
-                      setIsAIModalOpen(true);
-                    }}
+                    onClick={openAiModal}
                   >
                     Ask CoinDash AI
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
