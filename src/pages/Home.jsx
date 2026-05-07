@@ -6,6 +6,7 @@ import SearchBar from '../components/SearchBar';
 import HomeCoinsPreview from '../components/HomeCoinsPreview';
 import FeatureStory from '../components/FeatureStory';
 import CTA from '../components/CTA';
+import './Home.css';
 
 const Home = () => {
   useEffect(() => {
@@ -27,14 +28,16 @@ const Home = () => {
   }, []);
 
   return (
-    <Layout>
-      <Hero />
-      <WalletConnect />
-      <SearchBar />
-      <HomeCoinsPreview />
-      <FeatureStory />
-      <CTA />
-    </Layout>
+    <div className="home-page">
+      <Layout>
+        <Hero />
+        <WalletConnect />
+        <SearchBar />
+        <HomeCoinsPreview />
+        <FeatureStory />
+        <CTA />
+      </Layout>
+    </div>
   );
 };
 

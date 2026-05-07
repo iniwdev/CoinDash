@@ -1,0 +1,21 @@
+.wallet-connect-section {
+  position: relative;
+  overflow: hidden;
+  margin-top: 4rem;
+}
+
+.wallet-connect-panel {
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.95);
+  padding: 2rem;
+}
+
+.wallet-connect-panel h2,
+.wallet-connect-panel p {
+  margin: 0;
+}
+
+.wallet-connect-cta {
+  margin-top: 1.5rem;
+}

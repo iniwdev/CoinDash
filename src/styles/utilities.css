@@ -1,0 +1,112 @@
+.section-spacing {
+  padding: 6rem 0;
+}
+
+.content-width {
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  width: 100%;
+}
+
+.card-base {
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(15px);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #0f172a;
+  padding: 0.95rem 2rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  box-shadow: 0 16px 32px -16px rgba(247, 147, 26, 0.9);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 24px 56px -24px rgba(247, 147, 26, 0.9);
+  transform: scale(1.02);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  padding: 0.95rem 2rem;
+  color: #fff;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(247, 147, 26, 0.1);
+  border-color: var(--primary);
+}
+
+.btn-tertiary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  padding: 0.95rem 2rem;
+  color: #cbd5e1;
+  transition: color 0.3s ease, border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.btn-tertiary:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-primary {
+  color: var(--primary);
+}
+
+.card-panel {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+}
+
+.glow-button:hover {
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: 0 22px 50px rgba(255, 255, 255, 0.16);
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  background: var(--background);
+  color: var(--text);
+}
+
+.layout-root {
+  min-height: 100%;
+}
+
+.layout-main {
+  flex: 1;
+}
+
+.app-main {
+  flex: 1;
+}

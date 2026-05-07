@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { useAuth } from '../context/AuthContext';
 import { useCrypto } from '../context/CryptoContext';
 import Navbar from '../components/Navbar';
 
@@ -55,6 +56,7 @@ const SmallCard = ({ title, value, badge }) => (
 
 export default function CoinDetails() {
   const { id } = useParams();
+  const { openWalletModal } = useAuth();
   const { coins } = useCrypto();
   const [coin, setCoin] = useState(null);
   const [chartData, setChartData] = useState([]);
@@ -609,7 +611,7 @@ export default function CoinDetails() {
               <aside className="lg:col-span-1 space-y-4 min-w-0">
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
                   <p className="text-sm text-slate-400">Connect Wallet</p>
-                  <button type="button" className="mt-4 w-full rounded-full bg-orange-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-orange-400">
+                  <button type="button" onClick={openWalletModal} className="mt-4 w-full rounded-full bg-orange-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-orange-400">
                     Connect Wallet
                   </button>
                 </div>

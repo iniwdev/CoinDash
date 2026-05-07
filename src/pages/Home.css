@@ -1,0 +1,7 @@
+.home-page {
+  position: relative;
+}
+
+.home-page .content-width {
+  max-width: var(--content-width);
+}

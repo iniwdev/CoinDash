@@ -2,11 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { useSearch } from '../context/SearchContext.jsx';
 import { useCrypto } from '../context/CryptoContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import SearchDropdown from './SearchDropdown';
 
 const Navbar = React.memo(() => {
   const { query: searchQuery, setQuery: setSearchQuery } = useSearch();
   const { coins } = useCrypto();
+  const { user, logout, openModal } = useAuth();
   const [query, setQuery] = useState(searchQuery);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const location = useLocation();
@@ -154,15 +156,37 @@ const Navbar = React.memo(() => {
                 <path d="M19.4 15a7.5 7.5 0 0 0 .6-3 7.5 7.5 0 0 0-.6-3l2.1-1.6a0.5 0.5 0 0 0 .1-.8l-2-3.4a0.5 0.5 0 0 0-.7-.2l-2.5 1a7.4 7.4 0 0 0-2.6-1.5l-.4-2.7A0.5 0.5 0 0 0 14 1H10a0.5 0.5 0 0 0-.5.4L9.1 4a7.4 7.4 0 0 0-2.6 1.5l-2.5-1a0.5 0.5 0 0 0-.7.2L1.3 7.1a0.5 0.5 0 0 0 .1.8L3.5 9.6a7.5 7.5 0 0 0-.6 3 7.5 7.5 0 0 0 .6 3L1.4 17a0.5 0.5 0 0 0-.1.8l2 3.4a0.5 0.5 0 0 0 .7.2l2.5-1a7.4 7.4 0 0 0 2.6 1.5l.4 2.7A0.5 0.5 0 0 0 10 23h4a0.5 0.5 0 0 0 .5-.4l.4-2.7a7.4 7.4 0 0 0 2.6-1.5l2.5 1a0.5 0.5 0 0 0 .7-.2l2-3.4a0.5 0.5 0 0 0-.1-.8l-2.1-1.6Z" />
               </svg>
             </button>
-            <button type="button" className="text-sm font-medium text-slate-300 transition hover:text-white">
-              Login
-            </button>
-            <button
-              type="button"
-              className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-slate-950 shadow-[0_16px_32px_-16px_rgba(247,147,26,0.9)] transition duration-300 hover:shadow-[0_24px_56px_-24px_rgba(247,147,26,0.9)] hover:scale-[1.01]"
-            >
-              Get Started
-            </button>
+            {user ? (
+              <>
+                <span className="text-sm text-slate-300">
+                  Welcome, {user.email.split('@')[0]}
+                </span>
+                <button
+                  onClick={logout}
+                  type="button"
+                  className="text-sm font-medium text-slate-300 transition hover:text-white"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => openModal(true)}
+                  type="button"
+                  className="text-sm font-medium text-slate-300 transition hover:text-white"
+                >
+                  Login
+                </button>
+                <button
+                  onClick={() => openModal(false)}
+                  type="button"
+                  className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-slate-950 shadow-[0_16px_32px_-16px_rgba(247,147,26,0.9)] transition duration-300 hover:shadow-[0_24px_56px_-24px_rgba(247,147,26,0.9)] hover:scale-[1.01]"
+                >
+                  Get Started
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

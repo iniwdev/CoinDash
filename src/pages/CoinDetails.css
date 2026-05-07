@@ -1,0 +1,67 @@
+.coin-details-page {
+  min-height: calc(100vh - 80px);
+  background: var(--background);
+}
+
+.coin-details-page__shell {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem 1.5rem;
+}
+
+.coin-details-page__layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .coin-details-page__layout {
+    grid-template-columns: minmax(280px, 1fr) 2.2fr;
+  }
+}
+
+.coin-details-sidebar,
+.coin-details-content {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.coin-details-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.coin-details-chart {
+  min-height: 260px;
+}
+
+.coin-details-tabs,
+.coin-details-top-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.coin-details-tab,
+.coin-details-subtab {
+  padding: 0.85rem 1.15rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.coin-details-tab.active,
+.coin-details-subtab.active {
+  color: #fff;
+  border-color: var(--primary);
+  background: rgba(247, 147, 26, 0.12);
+}

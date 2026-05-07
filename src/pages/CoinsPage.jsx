@@ -6,6 +6,7 @@ import Tabs from '../components/Tabs';
 import CoinsTable from '../components/CoinsTable';
 import Pagination from '../components/Pagination';
 import { fetchChartsForCoins } from '../utils/coingeckoChart';
+import './CoinsPage.css';
 
 const CoinsPage = () => {
   const [coins, setCoins] = useState([]);
@@ -173,14 +174,14 @@ const CoinsPage = () => {
 
   return (
     <Layout>
-      <div className="section-spacing bg-background">
+      <div className="coins-page section-spacing bg-background">
         <div className="content-width">
-          <div className="text-center max-w-3xl mx-auto mb-12">
+          <div className="coins-page__hero">
             <p className="uppercase tracking-[0.3em] text-sm text-blue-300 mb-4">Market data</p>
-            <h1 className="text-4xl sm:text-5xl font-semibold text-white leading-tight mb-4">
+            <h1 className="coins-page__hero-title">
               Today's Crypto Prices by Market Cap
             </h1>
-            <p className="text-slate-400 text-base sm:text-lg">
+            <p className="coins-page__hero-copy">
               Explore live market data for the top cryptocurrencies with premium insights, volume, dominance, and recent price momentum.
             </p>
           </div>
@@ -188,7 +189,7 @@ const CoinsPage = () => {
           <StatsCards stats={marketStats} />
           <Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
-          <div className="space-y-6">
+          <div className="coins-page__table-wrapper">
             <CoinsTable coins={paginatedCoins} loading={loading} error={error} charts={charts} />
             <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
           </div>
