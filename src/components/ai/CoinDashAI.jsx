@@ -252,7 +252,7 @@ const CoinDashAI = ({ onClose }) => {
                             : 'bg-white/10 border border-white/10 text-slate-200'
                         }`}
                       >
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                        <p className="message-content text-sm leading-relaxed whitespace-pre-wrap break-words">
                           {message.content}
                         </p>
                         <p className="text-xs opacity-60 mt-2">

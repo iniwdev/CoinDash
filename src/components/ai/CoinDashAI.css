@@ -148,6 +148,12 @@
   }
 }
 
+.message-content {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 @media (max-width: 640px) {
   .suggested-prompts-grid {
     grid-template-columns: 1fr;

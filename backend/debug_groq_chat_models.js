@@ -9,7 +9,6 @@ const models = ['openai/gpt-oss-20b', 'openai/gpt-oss-120b', 'llama-3.1-8b-insta
       const completion = await groq.chat.completions.create({
         model,
         messages: [
-          { role: 'system', content: 'You are CoinDash AI, a professional crypto assistant.' },
           { role: 'user', content: 'Should I invest in Bitcoin now?' },
         ],
         temperature: 0.3,
