@@ -65,58 +65,74 @@ const CoinDashAI = ({ onClose }) => {
     if (!message || isLoading) return;
 
     const userMessage = {
-      id: Date.now(),
-      type: 'user',
+      role: "user",
       content: message,
-      timestamp: new Date()
+      time: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
+    setMessages((prev) => [...prev, userMessage]);
+
+    const currentInput = message;
+
+    setInputValue("");
     setIsLoading(true);
 
-    // Update conversation history for context
-    const newHistory = [...conversationHistory, { role: 'user', content: message }];
-    setConversationHistory(newHistory);
-
     try {
-      const response = await fetch('/api/coindash-ai', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message,
-          conversationHistory: newHistory
-        })
-      });
+      console.log("Sending request...");
+
+      const response = await fetch(
+        "http://localhost:5000/api/ai/chat",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: currentInput,
+          }),
+        }
+      );
+
+      console.log("Response status:", response.status);
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error("Server error");
       }
 
       const data = await response.json();
 
+      console.log("AI data:", data);
+
       const aiMessage = {
-        id: Date.now() + 1,
-        type: 'ai',
-        content: data.response,
-        timestamp: new Date()
+        role: "assistant",
+        content:
+          data.reply ||
+          "CoinDash AI could not generate a response.",
+        time: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
       };
 
-      setMessages(prev => [...prev, aiMessage]);
-      setConversationHistory(prev => [...prev, { role: 'assistant', content: data.response }]);
-
+      setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
-      console.error('AI Error:', error);
-      const errorMessage = {
-        id: Date.now() + 1,
-        type: 'ai',
-        content: 'Sorry, I\'m having trouble connecting right now. Please try again in a moment.',
-        timestamp: new Date(),
-        isError: true
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      console.error("AI Error:", error);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content:
+            "Server connection failed. Please check backend and API route.",
+          time: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -220,20 +236,18 @@ const CoinDashAI = ({ onClose }) => {
               ) : (
                 // Messages
                 <>
-                  {messages.map((message) => (
+                  {messages.map((message, index) => (
                     <motion.div
-                      key={message.id}
+                      key={index}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3 }}
-                      className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
                         className={`max-w-[80%] px-4 py-3 rounded-2xl ${
-                          message.type === 'user'
+                          message.role === 'user'
                             ? 'bg-gradient-to-r from-orange-500 to-purple-600 text-white'
-                            : message.isError
-                            ? 'bg-red-500/20 border border-red-500/30 text-red-300'
                             : 'bg-white/10 border border-white/10 text-slate-200'
                         }`}
                       >
@@ -241,7 +255,7 @@ const CoinDashAI = ({ onClose }) => {
                           {message.content}
                         </p>
                         <p className="text-xs opacity-60 mt-2">
-                          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {message.time}
                         </p>
                       </div>
                     </motion.div>
