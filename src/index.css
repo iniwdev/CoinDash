@@ -3,6 +3,7 @@
 @import './styles/utilities.css';
 @import './styles/animations.css';
 @import './styles/global.css';
+@import './components/ai/CoinDashAI.css';
 
 @tailwind base;
 @tailwind components;

@@ -45,3 +45,13 @@
 .portfolio-top-card {
   background: rgba(255, 255, 255, 0.03);
 }
+
+/* CoinDash AI Button Debug */
+.coindash-ai-btn {
+  position: relative;
+  z-index: 100;
+  pointer-events: auto !important;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+}

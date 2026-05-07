@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, RadialBarChart, RadialBar, Legend, ReferenceDot } from 'recharts';
+import CoinDashAI from '../components/ai/CoinDashAI';
 import './Portfolio.css';
 
 // Animation Variants
@@ -295,6 +296,7 @@ const faqData = [
 
 const Portfolio = () => {
   const [openItem, setOpenItem] = useState(null);
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const { openWalletModal } = useAuth();
   const timeFilters = ['24H', '1W', '1M', '3M', '6M', '1Y', 'ALL'];
   const activeFilter = '24H';
@@ -592,7 +594,16 @@ const Portfolio = () => {
                         <p className="mt-1 text-lg font-semibold text-white">MetaMask</p>
                       </div>
                     </div>
-                    <span className="rounded-full bg-sky-400/10 px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-sky-200">AI</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        console.log("AI badge clicked");
+                        setIsAIModalOpen(true);
+                      }}
+                      className="rounded-full bg-sky-400/10 px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-sky-200 hover:bg-sky-400/20 transition-colors cursor-pointer"
+                    >
+                      AI
+                    </button>
                   </div>
                   <div className="mt-4 h-px w-full bg-white/10" />
                   <div className="mt-5 text-sm font-semibold text-primary">Connect →</div>
@@ -995,12 +1006,19 @@ const Portfolio = () => {
                   <motion.p className="max-w-xl text-lg text-slate-400 leading-relaxed" variants={staggerItem}>
                     Set target sell prices and leverage AI-assisted estimates to optimize your exit strategy. Get personalized price predictions based on market trends and your portfolio data.
                   </motion.p>
-                  <motion.button className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full text-slate-950 font-bold text-base hover:shadow-[0_0_40px_rgba(245,158,11,0.4)] hover:scale-105 transition-all duration-300" whileHover={buttonHover} whileTap={{ scale: 0.98 }} variants={staggerItem}>
-                    Set up Your Exit Strategy
+                  <button
+                    type="button"
+                    className="coindash-ai-btn inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-purple-500 via-orange-500 to-purple-500 rounded-full text-white font-bold text-base hover:shadow-[0_0_40px_rgba(168,85,247,0.4)] hover:scale-105 transition-all duration-300"
+                    onClick={() => {
+                      console.log("CoinDash AI clicked");
+                      setIsAIModalOpen(true);
+                    }}
+                  >
+                    Ask CoinDash AI
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
-                  </motion.button>
+                  </button>
                 </motion.div>
 
                 <div className="relative">
@@ -1804,6 +1822,16 @@ const Portfolio = () => {
           </div>
         </div>
       </motion.div>
+
+      {/* CoinDash AI Modal */}
+      <AnimatePresence>
+        {isAIModalOpen && (
+          <CoinDashAI
+            key="coindash-ai-modal"
+            onClose={() => setIsAIModalOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </Layout>
   </div>
   );
