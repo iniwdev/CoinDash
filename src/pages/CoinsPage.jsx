@@ -5,6 +5,7 @@ import StatsCards from '../components/StatsCards';
 import Tabs from '../components/Tabs';
 import CoinsTable from '../components/CoinsTable';
 import ExchangesTable from '../components/ExchangesTable';
+import Heatmap from '../components/Heatmap';
 import Pagination from '../components/Pagination';
 import { fetchChartsForCoins } from '../utils/coingeckoChart';
 import './CoinsPage.css';
@@ -285,6 +286,8 @@ const CoinsPage = () => {
                 onPageChange={setCurrentPage}
               />
             </div>
+          ) : activeTab === 'heatmap' ? (
+            <Heatmap />
           ) : (
             <div className="coins-page__table-wrapper">
               <CoinsTable
