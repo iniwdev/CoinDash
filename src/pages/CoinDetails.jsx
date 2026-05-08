@@ -4,6 +4,8 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import { useAuth } from '../context/AuthContext';
 import { useCrypto } from '../context/CryptoContext';
 import Navbar from '../components/Navbar';
+import MarketsTab from '../components/coinDetails/MarketsTab';
+import CoinMarketsTable from '../components/coinDetails/CoinMarketsTable';
 
 const chartPeriods = [
   { label: '1H', value: '1h' },
@@ -384,22 +386,28 @@ export default function CoinDetails() {
                         </button>
                       ))}
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {subTabs.map((tab) => (
-                        <button
-                          key={tab}
-                          type="button"
-                          onClick={() => setActiveSubTab(tab)}
-                          className={`rounded-full px-3 py-2 text-sm transition ${activeSubTab === tab ? 'bg-white text-slate-950' : 'bg-white/10 text-slate-300 hover:bg-white/20'}`}
-                        >
-                          {tab}
-                        </button>
-                      ))}
-                    </div>
+                    {activeTopTab === 'Overview' && (
+                      <div className="flex flex-wrap gap-2">
+                        {subTabs.map((tab) => (
+                          <button
+                            key={tab}
+                            type="button"
+                            onClick={() => setActiveSubTab(tab)}
+                            className={`rounded-full px-3 py-2 text-sm transition ${activeSubTab === tab ? 'bg-white text-slate-950' : 'bg-white/10 text-slate-300 hover:bg-white/20'}`}
+                          >
+                            {tab}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
+                {activeTopTab === 'Market' ? (
+                  <MarketsTab coin={coin} />
+                ) : (
+                  <>
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                       <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Price chart</p>
@@ -579,32 +587,13 @@ export default function CoinDetails() {
                   </div>
                 </div>
 
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
-                  <p className="text-sm text-slate-400">Markets</p>
-                  <div className="mt-4 overflow-x-auto">
-                    <table className="min-w-full text-left text-sm text-slate-300">
-                      <thead className="border-b border-white/10 text-slate-400">
-                        <tr>
-                          {['Exchange', 'Pair', 'Volume', 'Volume %', 'Price', 'Last Updated'].map((title) => (
-                            <th key={title} className="px-3 py-3">{title}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/10">
-                        {['Binance', 'Coinbase', 'Kraken'].map((exchange) => (
-                          <tr key={exchange} className="hover:bg-white/5 transition">
-                            <td className="px-3 py-3">{exchange}</td>
-                            <td className="px-3 py-3">{coin.symbol.toUpperCase()}/USD</td>
-                            <td className="px-3 py-3">{formatCurrency(derivedStats.volume)}</td>
-                            <td className="px-3 py-3">{(Math.random() * 25).toFixed(1)}%</td>
-                            <td className="px-3 py-3">{formatCurrency(coin.price)}</td>
-                            <td className="px-3 py-3">{new Date().toLocaleTimeString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                <CoinMarketsTable
+                  coin={coin}
+                  limit={5}
+                  onSeeFullMarkets={() => setActiveTopTab('Market')}
+                />
+                  </>
+                )}
               </main>
 
               {/* RIGHT */}
