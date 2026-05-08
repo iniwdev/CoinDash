@@ -1,8 +1,11 @@
 ﻿import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import dayjs from 'dayjs';
 import { useAuth } from '../context/AuthContext';
 import { useCrypto } from '../context/CryptoContext';
+import { getComparisonOptions, fetchComparisonHistory } from '../utils/chartComparisons';
+import { getCoinGeckoId } from '../utils/coingeckoChart';
 import Navbar from '../components/Navbar';
 import MarketsTab from '../components/coinDetails/MarketsTab';
 import CoinMarketsTable from '../components/coinDetails/CoinMarketsTable';
@@ -24,8 +27,12 @@ const chartPeriods = [
 
 const formatCurrency = (value, currency = 'USD') => {
   if (typeof value !== 'number' || Number.isNaN(value)) return '—';
-  if (currency === 'USD') {
+  const currencyKey = String(currency).toLowerCase();
+  if (currencyKey === 'usd') {
     return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+  if (currencyKey === 'btc') {
+    return `${value.toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })} BTC`;
   }
   return `${value.toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })} ETH`;
 };
@@ -45,6 +52,43 @@ const formatNumber = (num) => {
   if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
   if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
   return num.toLocaleString();
+};
+
+const formatTimeLabel = (timestamp, range) => {
+  const date = dayjs(timestamp);
+  switch (range) {
+    case '1h':
+    case '24h':
+      return date.format('HH:mm');
+    case '1w':
+    case '1m':
+      return date.format('MMM D');
+    case '1y':
+      return date.format('MMM');
+    case 'all':
+      return date.format('YYYY');
+    default:
+      return date.format('MMM D');
+  }
+};
+
+const normalizeValue = (value, min, max) => {
+  if (typeof value !== 'number' || Number.isNaN(value) || max <= min) return 0.5;
+  return (value - min) / (max - min);
+};
+
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+const denormalizeRenderValue = (renderValue, min, max, offset = 0) => {
+  if (typeof renderValue !== 'number' || Number.isNaN(renderValue) || max <= min) return min;
+  const normalized = (renderValue - 0.1 - offset) / 0.8;
+  const clamped = clamp(normalized, 0, 1);
+  return min + clamped * (max - min);
+};
+
+const calcRenderValue = (value, min, max, offset = 0) => {
+  const normalized = normalizeValue(value, min, max);
+  return clamp(normalized * 0.8 + 0.1 + offset, 0, 1);
 };
 
 const SmallCard = ({ title, value, badge }) => (
@@ -68,7 +112,8 @@ export default function CoinDetails() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [range, setRange] = useState('24h');
-  const [currency, setCurrency] = useState('USD');
+  const [enabledCharts, setEnabledCharts] = useState(['usd']);
+  const [selectedCurrency, setSelectedCurrency] = useState('usd');
   const [noteText, setNoteText] = useState('');
   const [converterValue, setConverterValue] = useState(1);
   const [converterMode, setConverterMode] = useState('BTC→USD');
@@ -76,6 +121,26 @@ export default function CoinDetails() {
   const apiKey = import.meta.env.VITE_API_KEY || import.meta.env.VITE_COINSTATS_API_KEY;
   const btcCoin = useMemo(() => coins.find((c) => c.symbol === 'BTC'), [coins]);
   const ethCoin = useMemo(() => coins.find((c) => c.symbol === 'ETH'), [coins]);
+  const currentBtcPrice = useMemo(() => (btcCoin?.price && Number.isFinite(btcCoin.price) ? btcCoin.price : null), [btcCoin]);
+  const currentEthPrice = useMemo(() => (ethCoin?.price && Number.isFinite(ethCoin.price) ? ethCoin.price : null), [ethCoin]);
+  const comparisonOptions = useMemo(() => getComparisonOptions(id), [id]);
+  const coinGeckoId = useMemo(() => {
+    if (coin) return getCoinGeckoId(coin);
+    return id ? String(id).toLowerCase() : '';
+  }, [coin, id]);
+
+  useEffect(() => {
+    if (!id) return;
+    if (id.toLowerCase() === 'bitcoin') {
+      setEnabledCharts(['usd', 'eth']);
+      return;
+    }
+    if (id.toLowerCase() === 'ethereum') {
+      setEnabledCharts(['usd', 'btc']);
+      return;
+    }
+    setEnabledCharts(['usd', 'btc', 'eth']);
+  }, [id]);
 
   const rangeMap = {
     "1h": { days: 1, interval: "minutely" },
@@ -103,28 +168,50 @@ export default function CoinDetails() {
 
   const formatCurrency = (value, currencyType = 'USD') => {
     if (typeof value !== 'number' || Number.isNaN(value)) return '—';
-    if (currencyType === 'USD') {
+    const currencyKey = String(currencyType || 'usd').toLowerCase();
+    if (currencyKey === 'usd') {
       return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
-    return `${value.toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })} ETH`;
+    if (currencyKey === 'btc') {
+      return `${value.toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })} BTC`;
+    }
+    if (currencyKey === 'eth') {
+      return `${value.toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })} ETH`;
+    }
+    return `${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencyType}`;
   };
 
   const renderPriceChart = () => (
     <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Price chart</p>
-          <h2 className="mt-2 text-2xl font-semibold text-white truncate break-words">{coin.name} price movement</h2>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300">{currency}</span>
-          <button
-            type="button"
-            onClick={() => setCurrency(currency === 'USD' ? 'ETH' : 'USD')}
-            className="rounded-full bg-orange-500 px-3 py-2 text-sm font-semibold text-slate-950 transition hover:bg-orange-400"
-          >
-            Toggle {currency === 'USD' ? 'ETH' : 'USD'}
-          </button>
+<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="chart-header-title min-w-0">
+            <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Price chart</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white truncate break-words">{coin.name} price movement</h2>
+          </div>
+          <div className="comparison-toggle-group currency-toggle-row">
+          {comparisonOptions.map((option) => {
+            const isActive = enabledCharts.includes(option);
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => {
+                  setEnabledCharts((prev) => {
+                    const active = prev.includes(option);
+                    const next = active ? prev.filter((item) => item !== option) : [...prev, option];
+                    return next.length ? next : [option];
+                  });
+                  setSelectedCurrency(option);
+                }}
+                className={`comparison-toggle ${isActive ? 'active' : 'inactive'}`}
+              >
+                <span className={`toggle-checkbox ${option} ${isActive ? 'checked' : ''}`}>
+                  {isActive ? '✓' : ''}
+                </span>
+                <span className="toggle-label">{option.toUpperCase()}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -141,56 +228,193 @@ export default function CoinDetails() {
         ))}
       </div>
 
-      <div className="mt-4 w-full h-[350px] rounded-3xl border border-white/10 bg-slate-950/80 p-3">
+      <div className="mt-4 w-full h-[460px] rounded-3xl border border-white/10 bg-slate-950/80 p-3 overflow-hidden">
         {chartLoading ? (
           <div className="flex h-full items-center justify-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500" />
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.4}/>
-                  <stop offset="100%" stopColor="#f59e0b" stopOpacity={0}/>
+            {(() => {
+              const showBTC = enabledCharts.includes('btc');
+              const showETH = enabledCharts.includes('eth');
+              const onlyBTC = showBTC && !showETH;
+              const onlyETH = showETH && !showBTC;
+              const bothEnabled = showBTC && showETH;
+              const btcDx = bothEnabled ? -34 : 0;
+              const ethDx = 0;
+              const leftMargin = bothEnabled ? 38 : 38;
+              const btcAxisWidth = bothEnabled ? 42 : 34;
+              const ethAxisWidth = 34;
+
+              return (
+                <AreaChart data={chartData} margin={{ top: 8, right: 8, left: leftMargin, bottom: 0 }}>
+                  <defs>
+                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                  <feMerge>
+                    <feMergeNode in="coloredBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+                <linearGradient id="usdGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="btcGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#22c55e" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="ethGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
                 </linearGradient>
               </defs>
 
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" vertical={false} opacity={0.08} />
               <XAxis
                 dataKey="time"
-                tick={{ fill: "#9ca3af", fontSize: 12 }}
+                tick={{ fill: '#94a3b8', fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
-                minTickGap={30}
+                interval="preserveStartEnd"
+                minTickGap={40}
+                tickMargin={2}
               />
-
               <YAxis
-                domain={["auto", "auto"]}
-                tick={{ fill: "#9ca3af", fontSize: 12 }}
+                yAxisId="btcAxis"
+                orientation="left"
+                hide={!enabledCharts.includes('btc')}
+                tick={{ fill: '#7CFC00', fontSize: 11, fontWeight: 600, opacity: 0.9 }}
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(value) => `$${value.toLocaleString()}`}
+                width={btcAxisWidth}
+                dx={btcDx}
+                domain={[0, 1]}
+                tickCount={4}
+                tickFormatter={(value) => {
+                  const btcMin = chartData.reduce((min, item) => (item.btc != null ? Math.min(min, item.btc) : min), Infinity);
+                  const btcMax = chartData.reduce((max, item) => (item.btc != null ? Math.max(max, item.btc) : max), -Infinity);
+                  if (!Number.isFinite(value) || !Number.isFinite(btcMin) || !Number.isFinite(btcMax) || btcMax <= btcMin) return '';
+                  const actual = denormalizeRenderValue(value, btcMin, btcMax, 0);
+                  return actual != null ? `₿${Number(actual).toFixed(2)}` : '';
+                }}
+              />
+              <YAxis
+                yAxisId="ethAxis"
+                orientation="left"
+                hide={!enabledCharts.includes('eth')}
+                tick={{ fill: '#4ea1ff', fontSize: 11, fontWeight: 600, opacity: 0.9 }}
+                axisLine={false}
+                tickLine={false}
+                width={ethAxisWidth}
+                dx={ethDx}
+                domain={[0, 1]}
+                tickCount={4}
+                tickFormatter={(value) => {
+                  const ethMin = chartData.reduce((min, item) => (item.eth != null ? Math.min(min, item.eth) : min), Infinity);
+                  const ethMax = chartData.reduce((max, item) => (item.eth != null ? Math.max(max, item.eth) : max), -Infinity);
+                  if (!Number.isFinite(value) || !Number.isFinite(ethMin) || !Number.isFinite(ethMax) || ethMax <= ethMin) return '';
+                  const actual = denormalizeRenderValue(value, ethMin, ethMax, -0.012);
+                  return actual != null ? `Ξ${Number(actual).toFixed(1)}` : '';
+                }}
+              />
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                hide={!enabledCharts.includes('usd')}
+                tick={{ fill: '#94a3b8', fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+                width={55}
+                domain={[0, 1]}
+                tickFormatter={(value) => {
+                  const usdMin = chartData.reduce((min, item) => (item.usd != null ? Math.min(min, item.usd) : min), Infinity);
+                  const usdMax = chartData.reduce((max, item) => (item.usd != null ? Math.max(max, item.usd) : max), -Infinity);
+                  if (!Number.isFinite(value) || !Number.isFinite(usdMin) || !Number.isFinite(usdMax) || usdMax <= usdMin) return '';
+                  const actual = denormalizeRenderValue(value, usdMin, usdMax, 0.012);
+                  return actual != null ? `$${Number(actual).toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '';
+                }}
               />
 
               <Tooltip
+                cursor={{ stroke: 'rgba(255,255,255,0.12)', strokeWidth: 1 }}
                 contentStyle={{
-                  backgroundColor: "#111827",
-                  border: "1px solid #374151",
-                  borderRadius: "10px"
+                  backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                  border: '1px solid rgba(148,163,184,0.18)',
+                  borderRadius: '14px',
+                  boxShadow: '0 24px 64px rgba(15, 23, 42, 0.45)',
+                  padding: '12px 14px',
+                  fontSize: '12px',
                 }}
-                labelStyle={{ color: "#9ca3af" }}
-                formatter={(value) => [`$${value.toLocaleString()}`, "Price"]}
+                labelStyle={{ color: '#f8fafc', fontWeight: 700, marginBottom: '4px' }}
+                formatter={(value, name, props) => {
+                  const dataKey = props?.dataKey;
+                  const payload = props?.payload || {};
+                  let actualValue = value;
+
+                  if (dataKey === 'btcRender') actualValue = payload.btc;
+                  if (dataKey === 'ethRender') actualValue = payload.eth;
+
+                  if (name === 'USD') return [`$${Number(actualValue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'USD'];
+                  if (name === 'BTC') return [`${Number(actualValue).toFixed(6)} BTC`, 'BTC'];
+                  if (name === 'ETH') return [`${Number(actualValue).toFixed(6)} ETH`, 'ETH'];
+                  return [actualValue, name.toUpperCase()];
+                }}
+                labelFormatter={(label) => `Time: ${label}`}
               />
 
-              <Area
-                type="monotone"
-                dataKey="price"
-                stroke="#f59e0b"
-                strokeWidth={2}
-                fill="url(#colorPrice)"
-                dot={false}
-              />
-            </AreaChart>
+              {enabledCharts.includes('usd') && (
+                <Area
+                  type="monotone"
+                  dataKey="usdRender"
+                  name="USD"
+                  stroke="#f59e0b"
+                  strokeWidth={2.5}
+                  fill="url(#usdGradient)"
+                  fillOpacity={0.12}
+                  activeDot={{ r: 5, stroke: '#f59e0b', strokeWidth: 2, fill: '#0f172a' }}
+                  isAnimationActive
+                  animationDuration={800}
+                  yAxisId="right"
+                  filter="url(#glow)"
+                />
+              )}
+              {enabledCharts.includes('btc') && (
+                <Area
+                  type="monotone"
+                  dataKey="btcRender"
+                  name="BTC"
+                  stroke="#22c55e"
+                  strokeWidth={2.5}
+                  fill="url(#btcGradient)"
+                  fillOpacity={0.12}
+                  activeDot={{ r: 5, stroke: '#22c55e', strokeWidth: 2, fill: '#0f172a' }}
+                  isAnimationActive
+                  animationDuration={800}
+                  yAxisId="btcAxis"
+                  filter="url(#glow)"
+                />
+              )}
+              {enabledCharts.includes('eth') && (
+                <Area
+                  type="monotone"
+                  dataKey="ethRender"
+                  name="ETH"
+                  stroke="#38bdf8"
+                  strokeWidth={2.5}
+                  fill="url(#ethGradient)"
+                  fillOpacity={0.12}
+                  activeDot={{ r: 5, stroke: '#38bdf8', strokeWidth: 2, fill: '#0f172a' }}
+                  isAnimationActive
+                  animationDuration={800}
+                  yAxisId="ethAxis"
+                  filter="url(#glow)"
+                />
+              )}
+                </AreaChart>
+              );
+            })()}
           </ResponsiveContainer>
         )}
       </div>
@@ -299,18 +523,43 @@ export default function CoinDetails() {
     </>
   );
 
+  const getCurrencyPrice = (amount, currencyKey) => {
+    const key = String(currencyKey || 'usd').toLowerCase();
+    if (key === 'usd' || amount === null || amount === undefined) return amount;
+    if (key === 'btc') {
+      return btcCoin?.price ? amount / btcCoin.price : null;
+    }
+    if (key === 'eth') {
+      return ethCoin?.price ? amount / ethCoin.price : null;
+    }
+    return amount;
+  };
+
+  const displayedPrice = useMemo(
+    () => getCurrencyPrice(coin?.price ?? null, selectedCurrency),
+    [coin?.price, selectedCurrency, btcCoin, ethCoin]
+  );
+  const displayedLow = useMemo(
+    () => getCurrencyPrice(coin?.low24h ?? coin?.priceLow24h ?? null, selectedCurrency),
+    [coin?.low24h, coin?.priceLow24h, selectedCurrency, btcCoin, ethCoin]
+  );
+  const displayedHigh = useMemo(
+    () => getCurrencyPrice(coin?.high24h ?? coin?.priceHigh24h ?? null, selectedCurrency),
+    [coin?.high24h, coin?.priceHigh24h, selectedCurrency, btcCoin, ethCoin]
+  );
+
   const renderPriceContent = () => (
     <>
       {renderPriceChart()}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
           <p className="text-sm text-slate-400">Current price</p>
-          <p className="mt-3 text-3xl font-semibold text-white">{formatCurrency(coin.price)}</p>
-          <p className="mt-2 text-sm text-slate-400">{symbol?.toUpperCase()} live market price</p>
+          <p className="mt-3 text-3xl font-semibold text-white">{formatCurrency(displayedPrice, selectedCurrency)}</p>
+          <p className="mt-2 text-sm text-slate-400">{selectedCurrency.toUpperCase()} live market price</p>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
-          <p className="text-sm text-slate-400">24h range</p>
-          <p className="mt-3 text-2xl font-semibold text-white">{formatCurrency(coin.low24h ?? coin.priceLow24h ?? 0)} - {formatCurrency(coin.high24h ?? coin.priceHigh24h ?? 0)}</p>
+          <p className="text-sm text-slate-400">24h range ({selectedCurrency.toUpperCase()})</p>
+          <p className="mt-3 text-2xl font-semibold text-white">{formatCurrency(displayedLow, selectedCurrency)} - {formatCurrency(displayedHigh, selectedCurrency)}</p>
           <p className="mt-2 text-sm text-slate-400">Low / high range</p>
         </div>
       </div>
@@ -329,35 +578,74 @@ export default function CoinDetails() {
   const tabButtonClass = (tabValue) => `rounded-full px-3 py-2 text-sm font-medium transition ${activeTab === tabValue ? 'bg-orange-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'}`;
 
   const fetchChart = useCallback(async () => {
+    if (!coinGeckoId) {
+      setChartData([]);
+      return;
+    }
+
     setChartLoading(true);
+    setChartData([]);
+    setError(null);
+
     try {
-      const { days, interval } = rangeMap[range];
+      const { days } = rangeMap[range];
+      const usdData = await fetchComparisonHistory(coinGeckoId, 'usd', days);
 
-      let url = `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`;
+      console.log('Chart coinGeckoId:', coinGeckoId, 'route id:', id);
+      console.log('USD RAW', usdData.slice(0, 3));
+      console.log('currentBtcPrice', currentBtcPrice, 'currentEthPrice', currentEthPrice);
 
-      if (interval) {
-        url += `&interval=${interval}`;
-      }
+      const usdSeries = [];
+      const btcSeries = [];
+      const ethSeries = [];
 
-      const res = await fetch(url);
-      const data = await res.json();
+      const rawData = (usdData || [])
+        .map(([timestamp, usdValue]) => {
+          const usdNumber = Number(usdValue);
+          const btc = currentBtcPrice ? usdNumber / currentBtcPrice : null;
+          const eth = currentEthPrice ? usdNumber / currentEthPrice : null;
 
-      const formatted = data.prices.map(item => ({
-        time: new Date(item[0]).toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        price: item[1]
+          if (usdNumber != null && !Number.isNaN(usdNumber)) usdSeries.push(usdNumber);
+          if (btc != null && !Number.isNaN(btc)) btcSeries.push(btc);
+          if (eth != null && !Number.isNaN(eth)) ethSeries.push(eth);
+
+          return {
+            timestamp,
+            time: formatTimeLabel(timestamp, range),
+            usd: usdNumber,
+            btc,
+            eth,
+          };
+        })
+        .filter((item) => item.timestamp && !Number.isNaN(item.usd));
+
+      const usdMin = usdSeries.length ? Math.min(...usdSeries) : 0;
+      const usdMax = usdSeries.length ? Math.max(...usdSeries) : 0;
+      const btcMin = btcSeries.length ? Math.min(...btcSeries) : 0;
+      const btcMax = btcSeries.length ? Math.max(...btcSeries) : 0;
+      const ethMin = ethSeries.length ? Math.min(...ethSeries) : 0;
+      const ethMax = ethSeries.length ? Math.max(...ethSeries) : 0;
+
+      const visualOffset = 0.012;
+
+      const transformedData = rawData.map((item) => ({
+        ...item,
+        usdRender: calcRenderValue(item.usd, usdMin, usdMax, visualOffset),
+        btcRender: item.btc != null ? calcRenderValue(item.btc, btcMin, btcMax, 0) : null,
+        ethRender: item.eth != null ? calcRenderValue(item.eth, ethMin, ethMax, -visualOffset) : null,
       }));
 
-      setChartData(formatted);
+      transformedData.sort((a, b) => a.timestamp - b.timestamp);
+
+      console.log('TRANSFORMED SAMPLE', transformedData.slice(0, 5));
+      setChartData(transformedData);
     } catch (e) {
-      console.error(e);
+      console.error('Unable to fetch comparison chart data:', e);
       setChartData([]);
     } finally {
       setChartLoading(false);
     }
-  }, [range, id]);
+  }, [range, coinGeckoId, id, currentBtcPrice, currentEthPrice]);
 
   useEffect(() => {
     const fetchCoinDetails = async () => {
