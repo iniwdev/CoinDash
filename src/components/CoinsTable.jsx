@@ -2,7 +2,15 @@
 import { useCrypto } from '../context/CryptoContext';
 import CoinRow from './CoinRow';
 
-const CoinsTable = ({ coins: propCoins, loading: propLoading, error: propError, charts: propCharts = {} }) => {
+const CoinsTable = ({
+  coins: propCoins,
+  loading: propLoading,
+  error: propError,
+  charts: propCharts = {},
+  favorites: propFavorites,
+  onToggleFavorite: propToggleFavorite,
+  activeTab = '',
+}) => {
   const { loading: contextLoading, error: contextError, watchlist, toggleWatchlist } = useCrypto();
   const [localFavorites, setLocalFavorites] = useState([]);
 
@@ -12,12 +20,14 @@ const CoinsTable = ({ coins: propCoins, loading: propLoading, error: propError, 
   const error = isPageMode ? propError : contextError;
   const charts = isPageMode ? propCharts : {};
 
-  const activeWatchlist = isPageMode ? localFavorites : watchlist;
-  const handleToggleFavorite = isPageMode
-    ? (coinId) => setLocalFavorites((current) =>
-        current.includes(coinId) ? current.filter((id) => id !== coinId) : [...current, coinId],
-      )
-    : toggleWatchlist;
+  const activeWatchlist = typeof propFavorites !== 'undefined' ? propFavorites : isPageMode ? localFavorites : watchlist;
+  const handleToggleFavorite = typeof propToggleFavorite === 'function'
+    ? propToggleFavorite
+    : isPageMode
+      ? (coinId) => setLocalFavorites((current) =>
+          current.includes(coinId) ? current.filter((id) => id !== coinId) : [...current, coinId],
+        )
+      : toggleWatchlist;
 
   const favoriteSet = useMemo(() => new Set(activeWatchlist), [activeWatchlist]);
 
@@ -77,8 +87,20 @@ const CoinsTable = ({ coins: propCoins, loading: propLoading, error: propError, 
               </tr>
             ) : coins.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-2 py-12 text-center text-slate-400">
-                  No coins found.
+                <td colSpan={10} className="px-2 py-16">
+                  {activeTab === 'favorites' ? (
+                    <div className="mx-auto max-w-lg rounded-[32px] border border-white/10 bg-slate-950/80 p-8 text-center shadow-[0_32px_120px_-70px_rgba(15,23,42,0.9)]">
+                      <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-yellow-400/15 text-yellow-300 shadow-[0_0_30px_rgba(245,158,11,0.2)]">
+                        <span className="text-2xl">★</span>
+                      </div>
+                      <h3 className="text-xl font-semibold text-white mb-2">No favorite coins yet</h3>
+                      <p className="text-sm text-slate-400 max-w-md mx-auto">
+                        Star coins from the market table to build your watchlist and unlock a tailored favorites view.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-center text-slate-400">No coins found.</div>
+                  )}
                 </td>
               </tr>
             ) : (

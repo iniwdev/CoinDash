@@ -33,6 +33,90 @@
   display: grid;
   gap: 1.5rem;
   width: 100%;
-  overflow-x: auto;
+  overflow: hidden;
   border-radius: 20px;
+}
+
+.exchange-logo-container {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  min-height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px rgba(59,130,246,0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.exchange-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  transition: transform 0.22s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.exchange-logo-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f8fafc;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.05em;
+  z-index: 0;
+}
+
+tr:hover .exchange-logo {
+  transform: scale(1.06);
+}
+
+.exchange-logo-container-compact {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px rgba(59,130,246,0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.exchange-logo-compact {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  transition: transform 0.22s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.exchange-logo-fallback-compact {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f8fafc;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  z-index: 0;
+}
+
+tr:hover .exchange-logo-compact {
+  transform: scale(1.06);
 }

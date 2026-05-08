@@ -5,6 +5,7 @@ import CoinDetails from './pages/CoinDetails';
 import CoinAlerts from './pages/CoinAlerts';
 import CoinsPage from './pages/CoinsPage';
 import Portfolio from './pages/Portfolio';
+import WalletConnectPage from './pages/wallet/WalletConnectPage';
 import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
 import WalletConnectModal from './components/WalletConnectModal';
@@ -24,6 +25,7 @@ function App() {
           <Route path="/coin/:id/alerts" element={<CoinAlerts />} />
           <Route path="/coins" element={<CoinsPage />} />
           <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/wallet/:walletId" element={<WalletConnectPage />} />
         </Routes>
       </main>
       <Footer />

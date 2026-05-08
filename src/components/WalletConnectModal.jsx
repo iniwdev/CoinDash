@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { IoClose } from 'react-icons/io5';
@@ -27,6 +28,7 @@ const WalletSkeleton = () => (
 
 const WalletConnectModal = () => {
   const { isWalletModalOpen, closeWalletModal } = useAuth();
+  const navigate = useNavigate();
   const [wallets, setWallets] = useState([]);
   const [filteredWallets, setFilteredWallets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -59,8 +61,22 @@ const WalletConnectModal = () => {
     };
 
     if (isWalletModalOpen) {
+      // Scroll to top and lock body scroll when modal opens
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+      document.body.style.overflow = "hidden";
       loadData();
+    } else {
+      // Restore body scroll when modal closes
+      document.body.style.overflow = "auto";
     }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = "auto";
+    };
   }, [isWalletModalOpen]);
 
   // Filter wallets based on search and filters
@@ -92,30 +108,42 @@ const WalletConnectModal = () => {
 
     setIsConnecting(false);
     setStatusMessage(`${selectedWallet.name} connected successfully!`);
+
+    // Navigate to wallet connection page
+    closeWalletModal();
+    navigate(`/wallet/${selectedWallet.id}`);
   };
 
   return (
     <AnimatePresence>
       {isWalletModalOpen && (
         <>
+          {/* Premium Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-[9998] bg-[#04070d]/90 backdrop-blur-xl"
+            transition={{ duration: 0.35 }}
+            className="fixed inset-0 z-[9998] bg-black/72 backdrop-blur-xl"
             onClick={handleClose}
           />
 
+          {/* Animated Glow Orbs */}
+          <div className="fixed inset-0 z-[9997] pointer-events-none">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/8 rounded-full blur-[100px] animate-pulse" />
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/6 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
+          </div>
+
+          {/* Premium Modal Container */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: 24 }}
+            initial={{ opacity: 0, scale: 0.96, y: 18 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 24 }}
+            exit={{ opacity: 0, scale: 0.96, y: 18 }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+            className="fixed inset-0 z-[9999] flex items-start justify-center p-4 pt-8"
           >
             <div
-              className="relative w-full max-w-[1080px] h-[90vh] max-h-[90vh] overflow-hidden rounded-[34px] border border-white/10 bg-[#0b1221]/95 shadow-[0_35px_120px_rgba(0,0,0,0.45)]"
+              className="relative w-full max-w-[1080px] h-[90vh] max-h-[90vh] overflow-hidden rounded-[28px] border border-white/8 bg-gradient-to-b from-[#111827] to-[#060b17] backdrop-blur-[24px] shadow-[0_0_60px_rgba(0,0,0,0.55),0_0_25px_rgba(59,130,246,0.12)]"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.16),transparent_20%),radial-gradient(circle_at_bottom_right,rgba(124,58,237,0.08),transparent_30%)] pointer-events-none" />
@@ -134,15 +162,23 @@ const WalletConnectModal = () => {
                 {/* LEFT SECTION: WALLET SELECTION */}
                 <div className="flex flex-col overflow-hidden">
                   {/* HEADER - FIXED */}
-                  <div className="relative z-10 flex-shrink-0 border-b border-white/10 bg-[#0b1221]/95 backdrop-blur px-6 py-4 sm:px-8 sm:py-5">
-                    <div className="space-y-2">
-                      <h2 className="text-2xl font-semibold text-white sm:text-3xl pr-16 leading-tight">
-                        Connect your wallet and sync every holding.
-                      </h2>
-                      <p className="max-w-2xl text-slate-400 text-sm leading-relaxed">
-                        Choose from {wallets.length}+ wallet providers with read-only access. All transactions are encrypted and secure.
-                      </p>
+                  <div className="relative z-10 flex-shrink-0 border-b border-white/10 bg-gradient-to-b from-[#111827]/95 to-[#060b17]/95 backdrop-blur px-6 py-6 sm:px-8 sm:py-7">
+                    <div className="flex items-center gap-4 mb-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500/20 to-blue-500/20 border border-emerald-400/30 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+                        <svg className="h-6 w-6 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-bold text-white sm:text-3xl leading-tight">
+                          WalletConnect
+                        </h2>
+                        <p className="text-sm text-slate-400">Secure Web3 Portfolio Sync</p>
+                      </div>
                     </div>
+                    <p className="max-w-2xl text-slate-300 text-sm leading-relaxed">
+                      Track balances, DeFi positions, NFTs and multi-chain assets securely. Choose from {wallets.length}+ wallet providers with read-only access.
+                    </p>
                   </div>
 
                   {/* SEARCH - FIXED */}
@@ -215,60 +251,77 @@ const WalletConnectModal = () => {
                         {filteredWallets.map((wallet) => {
                           const isSelected = selectedKey === wallet.id;
                           return (
-                            <button
+                            <motion.button
                               key={wallet.id}
                               onClick={() => {
                                 setSelectedKey(wallet.id);
                                 setStatusMessage('');
                               }}
-                              className={`group relative overflow-hidden rounded-[28px] border p-5 text-left transition-all duration-300 ${
+                              whileHover={{ y: -4 }}
+                              transition={{ duration: 0.2 }}
+                              className={`group relative overflow-hidden rounded-3xl p-5 text-left transition-all duration-300 ${
                                 isSelected
-                                  ? 'border-orange-400/60 bg-white/10 shadow-[0_24px_60px_rgba(249,115,22,0.18)]'
-                                  : 'border-white/10 bg-slate-950/70 hover:border-orange-400/30 hover:bg-white/5'
+                                  ? 'border border-blue-400/35 bg-gradient-to-br from-white/10 to-white/5 shadow-[0_10px_30px_rgba(59,130,246,0.15)]'
+                                  : 'border border-white/6 bg-gradient-to-br from-white/4 to-white/2 hover:border-blue-400/35 hover:shadow-[0_10px_30px_rgba(59,130,246,0.15)]'
                               }`}
                             >
-                              <div className="flex items-start gap-3 mb-3">
+                              <div className="flex items-start gap-4 mb-4">
                                 <div className="flex-shrink-0">
-                                  {wallet.logo ? (
-                                    <img
-                                      src={wallet.logo}
-                                      alt={wallet.name}
-                                      className="h-12 w-12 rounded-2xl object-cover bg-white/10"
-                                      onError={(e) => {
-                                        e.target.style.display = 'none';
-                                      }}
-                                    />
-                                  ) : (
-                                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-orange-500/20 to-purple-500/20 flex items-center justify-center">
-                                      <span className="text-xs font-bold text-white">
-                                        {wallet.name.substring(0, 2).toUpperCase()}
-                                      </span>
+                                  <div className="relative">
+                                    <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(circle,rgba(59,130,246,0.22),transparent)] blur-sm" />
+                                    <div className="relative h-14 w-14 rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-white/10 flex items-center justify-center overflow-hidden">
+                                      {wallet.logo && wallet.logo.startsWith('http') ? (
+                                        <img
+                                          src={wallet.logo}
+                                          alt={wallet.name}
+                                          className="h-8 w-8 object-contain"
+                                          onError={(e) => {
+                                            e.target.style.display = 'none';
+                                            e.target.nextElementSibling.style.display = 'flex';
+                                          }}
+                                        />
+                                      ) : null}
+                                      <div className={`flex items-center justify-center ${wallet.logo && wallet.logo.startsWith('http') ? 'hidden' : ''}`}>
+                                        <span className="text-sm font-bold text-white">
+                                          {wallet.name.substring(0, 2).toUpperCase()}
+                                        </span>
+                                      </div>
                                     </div>
-                                  )}
+                                  </div>
                                 </div>
                                 <div className="flex-1">
-                                  <p className="text-sm text-slate-400">{wallet.category}</p>
-                                  <h3 className={`mt-2 font-semibold ${isSelected ? 'text-white' : 'text-slate-100'}`}>
+                                  <p className="text-xs uppercase tracking-[0.25em] text-slate-500 mb-1">{wallet.category}</p>
+                                  <h3 className={`font-semibold leading-tight ${isSelected ? 'text-white' : 'text-slate-100'}`}>
                                     {wallet.name}
                                   </h3>
+                                  <p className="text-xs text-slate-400 mt-1">
+                                    Supports {wallet.chains.slice(0, 2).join(', ')}{wallet.chains.length > 2 ? ` +${wallet.chains.length - 2}` : ''}
+                                  </p>
                                 </div>
                                 {wallet.verified && (
-                                  <span className="flex-shrink-0 h-5 w-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                                    <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                                  </span>
+                                  <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-400/30">
+                                    <svg className="w-3 h-3 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                    </svg>
+                                  </div>
                                 )}
                               </div>
-                              <div className="flex flex-wrap gap-2">
-                                {wallet.chains.map((chain) => (
+                              <div className="flex flex-wrap gap-1.5">
+                                {wallet.chains.slice(0, 3).map((chain) => (
                                   <span
                                     key={chain}
-                                    className="text-[10px] uppercase tracking-[0.2em] font-semibold px-2 py-1 rounded-full bg-white/5 text-slate-400 border border-white/10"
+                                    className="text-[10px] uppercase tracking-[0.15em] font-medium px-2 py-1 rounded-full bg-slate-800/60 text-slate-300 border border-white/5"
                                   >
                                     {chain}
                                   </span>
                                 ))}
+                                {wallet.chains.length > 3 && (
+                                  <span className="text-[10px] uppercase tracking-[0.15em] font-medium px-2 py-1 rounded-full bg-slate-800/60 text-slate-400 border border-white/5">
+                                    +{wallet.chains.length - 3}
+                                  </span>
+                                )}
                               </div>
-                            </button>
+                            </motion.button>
                           );
                         })}
                       </div>
@@ -348,9 +401,23 @@ const WalletConnectModal = () => {
                           type="button"
                           onClick={handleConnect}
                           disabled={isConnecting}
-                          className="mt-auto w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-400 to-orange-500 px-4 py-4 text-sm font-semibold text-slate-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+                          className="mt-auto w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-400 to-orange-500 px-4 py-4 text-sm font-semibold text-slate-950 transition-all duration-200 hover:scale-[1.03] hover:shadow-[0_0_18px_rgba(251,146,60,0.45)] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:scale-100 disabled:hover:shadow-none"
                         >
-                          {isConnecting ? 'Connecting...' : statusMessage ? 'Connected ✓' : 'Connect Wallet'}
+                          {isConnecting ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
+                              Connecting...
+                            </>
+                          ) : statusMessage ? (
+                            <>
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                              Connected ✓
+                            </>
+                          ) : (
+                            'Connect Wallet'
+                          )}
                         </button>
 
                         {statusMessage && (
@@ -375,9 +442,23 @@ const WalletConnectModal = () => {
                     type="button"
                     onClick={handleConnect}
                     disabled={isConnecting}
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-400 to-orange-500 px-4 py-4 text-sm font-semibold text-slate-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-orange-400 to-orange-500 px-4 py-4 text-sm font-semibold text-slate-950 transition-all duration-200 hover:scale-[1.03] hover:shadow-[0_0_18px_rgba(251,146,60,0.45)] disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:scale-100 disabled:hover:shadow-none"
                   >
-                    {isConnecting ? 'Connecting...' : statusMessage ? 'Connected ✓' : 'Connect Wallet'}
+                    {isConnecting ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
+                        Connecting...
+                      </>
+                    ) : statusMessage ? (
+                      <>
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        Connected ✓
+                      </>
+                    ) : (
+                      'Connect Wallet'
+                    )}
                   </button>
                   {statusMessage && (
                     <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-emerald-200 text-center">
