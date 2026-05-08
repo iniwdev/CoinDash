@@ -6,6 +6,7 @@ import { useCrypto } from '../context/CryptoContext';
 import Navbar from '../components/Navbar';
 import MarketsTab from '../components/coinDetails/MarketsTab';
 import CoinMarketsTable from '../components/coinDetails/CoinMarketsTable';
+import CoinNewsSection from '../components/coinDetails/CoinNewsSection';
 import AnalyticsDashboard from '../components/analytics/AnalyticsDashboard';
 
 const chartPeriods = [
@@ -405,6 +406,8 @@ export default function CoinDetails() {
                 <MarketsTab coin={coin} />
               ) : activeTopTab === 'Analytics' ? (
                 <AnalyticsDashboard coin={coin} />
+              ) : activeSubTab === 'News' ? (
+                <CoinNewsSection coin={coin} />
               ) : (
                 <>
                   <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
