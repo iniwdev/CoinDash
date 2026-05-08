@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import Home from './pages/Home';
 import CoinDetails from './pages/CoinDetails';
+import CoinAlerts from './pages/CoinAlerts';
 import CoinsPage from './pages/CoinsPage';
 import Portfolio from './pages/Portfolio';
 import Footer from './components/Footer';
@@ -20,6 +21,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/coin/:id" element={<CoinDetails />} />
+          <Route path="/coin/:id/alerts" element={<CoinAlerts />} />
           <Route path="/coins" element={<CoinsPage />} />
           <Route path="/portfolio" element={<Portfolio />} />
         </Routes>

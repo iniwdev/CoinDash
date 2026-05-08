@@ -7,7 +7,9 @@ import Navbar from '../components/Navbar';
 import MarketsTab from '../components/coinDetails/MarketsTab';
 import CoinMarketsTable from '../components/coinDetails/CoinMarketsTable';
 import CoinNewsSection from '../components/coinDetails/CoinNewsSection';
+import AlertsTab from '../components/coinDetails/AlertsTab';
 import AnalyticsDashboard from '../components/analytics/AnalyticsDashboard';
+import './CoinDetails.css';
 
 const chartPeriods = [
   { label: '1H', value: '1h' },
@@ -19,9 +21,6 @@ const chartPeriods = [
   { label: '1Y', value: '1y' },
   { label: 'ALL', value: 'all' },
 ];
-
-const topTabs = ['Overview', 'Market', 'Analytics'];
-const subTabs = ['Price', 'Alerts', 'News'];
 
 const formatCurrency = (value, currency = 'USD') => {
   if (typeof value !== 'number' || Number.isNaN(value)) return '—';
@@ -67,8 +66,7 @@ export default function CoinDetails() {
   const [loading, setLoading] = useState(true);
   const [chartLoading, setChartLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [activeTopTab, setActiveTopTab] = useState('Overview');
-  const [activeSubTab, setActiveSubTab] = useState('Price');
+  const [activeTab, setActiveTab] = useState('overview');
   const [range, setRange] = useState('24h');
   const [currency, setCurrency] = useState('USD');
   const [noteText, setNoteText] = useState('');
@@ -90,8 +88,247 @@ export default function CoinDetails() {
     "all": { days: "max" }
   };
 
+  const tabs = [
+    { label: 'Overview', value: 'overview' },
+    { label: 'Market', value: 'market' },
+    { label: 'Analytics', value: 'analytics' },
+    { label: 'Price', value: 'price' },
+    { label: 'Alerts', value: 'alerts' },
+    { label: 'News', value: 'news' },
+  ];
+
+  const leftTabs = tabs.slice(0, 3);
+  const rightTabs = tabs.slice(3);
+  const showRightTabs = ['overview', 'price', 'alerts', 'news'].includes(activeTab);
+
+  const formatCurrency = (value, currencyType = 'USD') => {
+    if (typeof value !== 'number' || Number.isNaN(value)) return '—';
+    if (currencyType === 'USD') {
+      return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    return `${value.toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })} ETH`;
+  };
+
+  const renderPriceChart = () => (
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Price chart</p>
+          <h2 className="mt-2 text-2xl font-semibold text-white truncate break-words">{coin.name} price movement</h2>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300">{currency}</span>
+          <button
+            type="button"
+            onClick={() => setCurrency(currency === 'USD' ? 'ETH' : 'USD')}
+            className="rounded-full bg-orange-500 px-3 py-2 text-sm font-semibold text-slate-950 transition hover:bg-orange-400"
+          >
+            Toggle {currency === 'USD' ? 'ETH' : 'USD'}
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {chartPeriods.map((filter) => (
+          <button
+            key={filter.value}
+            type="button"
+            onClick={() => setRange(filter.value)}
+            className={`rounded-full px-3 py-2 text-sm transition ${range === filter.value ? 'bg-orange-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'}`}
+          >
+            {filter.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-4 w-full h-[350px] rounded-3xl border border-white/10 bg-slate-950/80 p-3">
+        {chartLoading ? (
+          <div className="flex h-full items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500" />
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.4}/>
+                  <stop offset="100%" stopColor="#f59e0b" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+
+              <XAxis
+                dataKey="time"
+                tick={{ fill: "#9ca3af", fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
+                minTickGap={30}
+              />
+
+              <YAxis
+                domain={["auto", "auto"]}
+                tick={{ fill: "#9ca3af", fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(value) => `$${value.toLocaleString()}`}
+              />
+
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#111827",
+                  border: "1px solid #374151",
+                  borderRadius: "10px"
+                }}
+                labelStyle={{ color: "#9ca3af" }}
+                formatter={(value) => [`$${value.toLocaleString()}`, "Price"]}
+              />
+
+              <Area
+                type="monotone"
+                dataKey="price"
+                stroke="#f59e0b"
+                strokeWidth={2}
+                fill="url(#colorPrice)"
+                dot={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderOverviewContent = () => (
+    <>
+      {renderPriceChart()}
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
+          <p className="text-sm text-slate-400">Notes</p>
+          <p className="mt-2 text-lg font-semibold text-white">Personal research</p>
+          <textarea
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value)}
+            placeholder="Add your note..."
+            className="mt-4 h-40 w-full rounded-3xl border border-white/10 bg-slate-950/80 p-4 text-sm text-white outline-none focus:border-orange-400"
+          />
+          <button type="button" className="mt-4 rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-orange-400">
+            Save Note
+          </button>
+        </div>
+
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
+          <p className="text-sm text-slate-400">Crypto Converter</p>
+          <div className="mt-4 space-y-4">
+            <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-4">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Mode</p>
+              <select
+                value={converterMode}
+                onChange={(e) => setConverterMode(e.target.value)}
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 p-3 text-sm text-white outline-none"
+              >
+                <option>BTC→USD</option>
+                <option>USD→ETH</option>
+              </select>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-4">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Amount</p>
+              <input
+                type="number"
+                value={converterValue}
+                onChange={(e) => setConverterValue(Number(e.target.value))}
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 p-3 text-sm text-white outline-none"
+              />
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-4">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Result</p>
+              <p className="mt-2 text-xl font-semibold text-white truncate">{convertedValue}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <SmallCard title="% Holders" value="68%" badge="On chain" />
+        <SmallCard title="Dominance" value="24.5%" badge="Market share" />
+        <SmallCard title="Wallet vs Exchange" value="72 / 28" badge="Distribution" />
+      </div>
+
+      <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-sm text-slate-400">Related Assets</p>
+            <h3 className="mt-2 text-xl font-semibold text-white">Similar cryptocurrencies</h3>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          {['Ethereum', 'Tether', 'Cardano'].map((asset) => (
+            <div key={asset} className="rounded-3xl border border-white/10 bg-slate-900/80 p-4">
+              <p className="text-sm text-slate-400 truncate">{asset}</p>
+              <p className="mt-2 text-lg font-semibold text-white truncate">{asset === 'Ethereum' ? 'ETH' : asset === 'Tether' ? 'USDT' : 'ADA'}</p>
+              <p className="mt-1 text-sm text-slate-300">{asset === 'Ethereum' ? '18.2%' : asset === 'Tether' ? '1.0%' : '9.8%'}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-sm text-slate-400">Trending Crypto</p>
+            <h3 className="mt-2 text-xl font-semibold text-white">Watchlist movers</h3>
+          </div>
+        </div>
+        <div className="mt-4 space-y-3">
+          {['Solana', 'Avalanche', 'Polygon'].map((name) => (
+            <div key={name} className="flex items-center justify-between rounded-3xl border border-white/10 bg-slate-900/80 p-4">
+              <div>
+                <p className="text-sm text-slate-400 truncate">{name}</p>
+                <p className="text-lg font-semibold text-white truncate">{name.slice(0, 3).toUpperCase()}</p>
+              </div>
+              <p className="text-sm text-green-400">+{(Math.random() * 8 + 1).toFixed(2)}%</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <CoinMarketsTable
+        coin={coin}
+        limit={5}
+        onSeeFullMarkets={() => setActiveTab('market')}
+      />
+    </>
+  );
+
+  const renderPriceContent = () => (
+    <>
+      {renderPriceChart()}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
+          <p className="text-sm text-slate-400">Current price</p>
+          <p className="mt-3 text-3xl font-semibold text-white">{formatCurrency(coin.price)}</p>
+          <p className="mt-2 text-sm text-slate-400">{symbol?.toUpperCase()} live market price</p>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
+          <p className="text-sm text-slate-400">24h range</p>
+          <p className="mt-3 text-2xl font-semibold text-white">{formatCurrency(coin.low24h ?? coin.priceLow24h ?? 0)} - {formatCurrency(coin.high24h ?? coin.priceHigh24h ?? 0)}</p>
+          <p className="mt-2 text-sm text-slate-400">Low / high range</p>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderMainContent = () => {
+    if (activeTab === 'market') return <MarketsTab coin={coin} />;
+    if (activeTab === 'analytics') return <AnalyticsDashboard coin={coin} />;
+    if (activeTab === 'alerts') return <AlertsTab coin={coin} coinData={derivedStats} marketData={coin} price={coin.price} symbol={coin.symbol} />;
+    if (activeTab === 'news') return <CoinNewsSection coin={coin} />;
+    if (activeTab === 'price') return renderPriceContent();
+    return renderOverviewContent();
+  };
+
+  const tabButtonClass = (tabValue) => `rounded-full px-3 py-2 text-sm font-medium transition ${activeTab === tabValue ? 'bg-orange-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'}`;
+
   const fetchChart = useCallback(async () => {
-    console.log(range);
     setChartLoading(true);
     try {
       const { days, interval } = rangeMap[range];
@@ -113,7 +350,6 @@ export default function CoinDetails() {
         price: item[1]
       }));
 
-      console.log(formatted);
       setChartData(formatted);
     } catch (e) {
       console.error(e);
@@ -372,231 +608,37 @@ export default function CoinDetails() {
             {/* CENTER CONTENT */}
             <main className="col-span-12 lg:col-span-6 h-auto lg:h-[calc(100vh-64px-2rem)] overflow-y-auto scroll-area min-w-0 space-y-6">
               <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap gap-2">
-                    {topTabs.map((tab) => (
+                <div className="tabs-header">
+                <div className="tabs-left">
+                  {leftTabs.map((tab) => (
+                    <button
+                      key={tab.value}
+                      type="button"
+                      onClick={() => setActiveTab(tab.value)}
+                      className={tabButtonClass(tab.value)}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+                {showRightTabs && (
+                  <div className="tabs-right">
+                    {rightTabs.map((tab) => (
                       <button
-                        key={tab}
+                        key={tab.value}
                         type="button"
-                        onClick={() => setActiveTopTab(tab)}
-                        className={`rounded-full px-3 py-2 text-sm font-medium transition ${activeTopTab === tab ? 'bg-orange-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'}`}
+                        onClick={() => setActiveTab(tab.value)}
+                        className={tabButtonClass(tab.value)}
                       >
-                        {tab}
+                        {tab.label}
                       </button>
                     ))}
                   </div>
-                  {activeTopTab === 'Overview' && (
-                    <div className="flex flex-wrap gap-2">
-                      {subTabs.map((tab) => (
-                        <button
-                          key={tab}
-                          type="button"
-                          onClick={() => setActiveSubTab(tab)}
-                          className={`rounded-full px-3 py-2 text-sm transition ${activeSubTab === tab ? 'bg-white text-slate-950' : 'bg-white/10 text-slate-300 hover:bg-white/20'}`}
-                        >
-                          {tab}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                )}
+              </div>
               </div>
 
-              {activeTopTab === 'Market' ? (
-                <MarketsTab coin={coin} />
-              ) : activeTopTab === 'Analytics' ? (
-                <AnalyticsDashboard coin={coin} />
-              ) : activeSubTab === 'News' ? (
-                <CoinNewsSection coin={coin} />
-              ) : (
-                <>
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                      <div>
-                        <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Price chart</p>
-                        <h2 className="mt-2 text-2xl font-semibold text-white truncate break-words">{coin.name} price movement</h2>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300">{currency}</span>
-                        <button
-                          type="button"
-                          onClick={() => setCurrency(currency === 'USD' ? 'ETH' : 'USD')}
-                          className="rounded-full bg-orange-500 px-3 py-2 text-sm font-semibold text-slate-950 transition hover:bg-orange-400"
-                        >
-                          Toggle {currency === 'USD' ? 'ETH' : 'USD'}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {chartPeriods.map((filter) => (
-                        <button
-                          key={filter.value}
-                          type="button"
-                          onClick={() => setRange(filter.value)}
-                          className={`rounded-full px-3 py-2 text-sm transition ${range === filter.value ? 'bg-orange-500 text-white' : 'bg-white/10 text-slate-300 hover:bg-white/20'}`}
-                        >
-                          {filter.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="mt-4 w-full h-[350px] rounded-3xl border border-white/10 bg-slate-950/80 p-3">
-                      {chartLoading ? (
-                        <div className="flex h-full items-center justify-center">
-                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500" />
-                        </div>
-                      ) : (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={chartData}>
-                            <defs>
-                              <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.4}/>
-                                <stop offset="100%" stopColor="#f59e0b" stopOpacity={0}/>
-                              </linearGradient>
-                            </defs>
-
-                            <XAxis
-                              dataKey="time"
-                              tick={{ fill: "#9ca3af", fontSize: 12 }}
-                              axisLine={false}
-                              tickLine={false}
-                              minTickGap={30}
-                            />
-
-                            <YAxis
-                              domain={['auto', 'auto']}
-                              tick={{ fill: "#9ca3af", fontSize: 12 }}
-                              axisLine={false}
-                              tickLine={false}
-                              tickFormatter={(value) => `$${value.toLocaleString()}`}
-                            />
-
-                            <Tooltip
-                              contentStyle={{
-                                backgroundColor: "#111827",
-                                border: "1px solid #374151",
-                                borderRadius: "10px"
-                              }}
-                              labelStyle={{ color: "#9ca3af" }}
-                              formatter={(value) => [`$${value.toLocaleString()}`, "Price"]}
-                            />
-
-                            <Area
-                              type="monotone"
-                              dataKey="price"
-                              stroke="#f59e0b"
-                              strokeWidth={2}
-                              fill="url(#colorPrice)"
-                              dot={false}
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
-                      <div className="flex items-center justify-between gap-2">
-                        <div>
-                          <p className="text-sm text-slate-400">Notes</p>
-                          <p className="mt-2 text-lg font-semibold text-white">Personal research</p>
-                        </div>
-                      </div>
-                      <textarea
-                        value={noteText}
-                        onChange={(e) => setNoteText(e.target.value)}
-                        placeholder="Add your note..."
-                        className="mt-4 h-40 w-full rounded-3xl border border-white/10 bg-slate-950/80 p-4 text-sm text-white outline-none focus:border-orange-400"
-                      />
-                      <button type="button" className="mt-4 rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-orange-400">
-                        Save Note
-                      </button>
-                    </div>
-
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
-                      <p className="text-sm text-slate-400">Crypto Converter</p>
-                      <div className="mt-4 space-y-4">
-                        <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-4">
-                          <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Mode</p>
-                          <select
-                            value={converterMode}
-                            onChange={(e) => setConverterMode(e.target.value)}
-                            className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 p-3 text-sm text-white outline-none"
-                          >
-                            <option>BTC→USD</option>
-                            <option>USD→ETH</option>
-                          </select>
-                        </div>
-                        <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-4">
-                          <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Amount</p>
-                          <input
-                            type="number"
-                            value={converterValue}
-                            onChange={(e) => setConverterValue(Number(e.target.value))}
-                            className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 p-3 text-sm text-white outline-none"
-                          />
-                        </div>
-                        <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-4">
-                          <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Result</p>
-                          <p className="mt-2 text-xl font-semibold text-white truncate">{convertedValue}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                    <SmallCard title="% Holders" value="68%" badge="On chain" />
-                    <SmallCard title="Dominance" value="24.5%" badge="Market share" />
-                    <SmallCard title="Wallet vs Exchange" value="72 / 28" badge="Distribution" />
-                  </div>
-
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
-                        <p className="text-sm text-slate-400">Related Assets</p>
-                        <h3 className="mt-2 text-xl font-semibold text-white">Similar cryptocurrencies</h3>
-                      </div>
-                    </div>
-                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                      {['Ethereum', 'Tether', 'Cardano'].map((asset) => (
-                        <div key={asset} className="rounded-3xl border border-white/10 bg-slate-900/80 p-4">
-                          <p className="text-sm text-slate-400 truncate">{asset}</p>
-                          <p className="mt-2 text-lg font-semibold text-white truncate">{asset === 'Ethereum' ? 'ETH' : asset === 'Tether' ? 'USDT' : 'ADA'}</p>
-                          <p className="mt-1 text-sm text-slate-300">{asset === 'Ethereum' ? '18.2%' : asset === 'Tether' ? '1.0%' : '9.8%'}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 w-full ">
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
-                        <p className="text-sm text-slate-400">Trending Crypto</p>
-                        <h3 className="mt-2 text-xl font-semibold text-white">Watchlist movers</h3>
-                      </div>
-                    </div>
-                    <div className="mt-4 space-y-3">
-                      {['Solana', 'Avalanche', 'Polygon'].map((name) => (
-                        <div key={name} className="flex items-center justify-between rounded-3xl border border-white/10 bg-slate-900/80 p-4">
-                          <div>
-                            <p className="text-sm text-slate-400 truncate">{name}</p>
-                            <p className="text-lg font-semibold text-white truncate">{name.slice(0, 3).toUpperCase()}</p>
-                          </div>
-                          <p className="text-sm text-green-400">+{(Math.random() * 8 + 1).toFixed(2)}%</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <CoinMarketsTable
-                    coin={coin}
-                    limit={5}
-                    onSeeFullMarkets={() => setActiveTopTab('Market')}
-                  />
-                </>
-              )}
+              {renderMainContent()}
             </main>
 
             {/* RIGHT SIDEBAR */}
