@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import Layout from '../components/Layout';
 import Hero from '../components/Hero';
-import WalletConnect from '../components/WalletConnect';
+import PortfolioWalletCards from '../components/PortfolioWalletCards';
 import SearchBar from '../components/SearchBar';
 import HomeCoinsPreview from '../components/HomeCoinsPreview';
 import FeatureStory from '../components/FeatureStory';
@@ -31,7 +31,7 @@ const Home = () => {
     <div className="home-page">
       <Layout>
         <Hero />
-        <WalletConnect />
+        <PortfolioWalletCards />
         <SearchBar />
         <HomeCoinsPreview />
         <FeatureStory />
