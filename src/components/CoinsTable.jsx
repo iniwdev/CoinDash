@@ -1,5 +1,5 @@
-﻿import { useMemo, useState } from 'react';
-import { useCrypto } from '../context/CryptoContext';
+﻿import { useMemo } from 'react';
+import { useWatchlistStore } from '../store/useWatchlistStore.jsx';
 import CoinRow from './CoinRow';
 
 const CoinsTable = ({
@@ -7,29 +7,26 @@ const CoinsTable = ({
   loading: propLoading,
   error: propError,
   charts: propCharts = {},
-  favorites: propFavorites,
   onToggleFavorite: propToggleFavorite,
   activeTab = '',
 }) => {
-  const { loading: contextLoading, error: contextError, watchlist, toggleWatchlist } = useCrypto();
-  const [localFavorites, setLocalFavorites] = useState([]);
+  const watchlist = useWatchlistStore((state) => state.watchlist);
+  const toggleWatchlist = useWatchlistStore((state) => state.toggleWatchlist);
 
   const isPageMode = typeof propCoins !== 'undefined';
   const coins = isPageMode ? propCoins : [];
-  const loading = isPageMode ? propLoading : contextLoading;
-  const error = isPageMode ? propError : contextError;
+  const loading = isPageMode ? propLoading : false;
+  const error = isPageMode ? propError : null;
   const charts = isPageMode ? propCharts : {};
 
-  const activeWatchlist = typeof propFavorites !== 'undefined' ? propFavorites : isPageMode ? localFavorites : watchlist;
   const handleToggleFavorite = typeof propToggleFavorite === 'function'
     ? propToggleFavorite
-    : isPageMode
-      ? (coinId) => setLocalFavorites((current) =>
-          current.includes(coinId) ? current.filter((id) => id !== coinId) : [...current, coinId],
-        )
-      : toggleWatchlist;
+    : (coin) => toggleWatchlist(coin);
 
-  const favoriteSet = useMemo(() => new Set(activeWatchlist), [activeWatchlist]);
+  const favoriteSet = useMemo(
+    () => new Set(watchlist.map((item) => item.id)),
+    [watchlist]
+  );
 
   const formatSkeletonCell = () => <div className="h-4 rounded bg-slate-800" />;
 

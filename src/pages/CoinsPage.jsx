@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearch } from '../context/SearchContext.jsx';
+import { useWatchlistStore } from '../store/useWatchlistStore.jsx';
 import Layout from '../components/Layout';
 import StatsCards from '../components/StatsCards';
 import Tabs from '../components/Tabs';
@@ -16,15 +17,10 @@ const CoinsPage = () => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState('cryptocurrencies');
-  const [favorites, setFavorites] = useState(() => {
-    try {
-      const stored = window.localStorage.getItem('favoriteCoins');
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
   const [exchanges, setExchanges] = useState([]);
+  const watchlist = useWatchlistStore((state) => state.watchlist);
+  const toggleWatchlist = useWatchlistStore((state) => state.toggleWatchlist);
+  const watchlistIds = useMemo(() => new Set(watchlist.map((item) => item.id)), [watchlist]);
   const [exchangesLoading, setExchangesLoading] = useState(true);
   const [exchangesError, setExchangesError] = useState(null);
   const [charts, setCharts] = useState({});
@@ -34,7 +30,7 @@ const CoinsPage = () => {
 
   const tabs = [
     { id: 'cryptocurrencies', label: 'Cryptocurrencies' },
-    { id: 'favorites', label: `Favorites${favorites.length > 0 ? ` (${favorites.length})` : ''}` },
+    { id: 'favorites', label: `Favorites${watchlist.length > 0 ? ` (${watchlist.length})` : ''}` },
     { id: 'exchanges', label: 'Exchanges' },
     { id: 'heatmap', label: 'Heatmap' },
     { id: 'categories', label: 'Categories' },
@@ -157,15 +153,13 @@ const CoinsPage = () => {
     loadExchanges();
   }, [loadExchanges]);
 
-  useEffect(() => {
-    window.localStorage.setItem('favoriteCoins', JSON.stringify(favorites));
-  }, [favorites]);
-
-  const toggleFavorite = (coinId) => {
-    setFavorites((prev) =>
-      prev.includes(coinId) ? prev.filter((id) => id !== coinId) : [...prev, coinId],
-    );
+  const toggleFavorite = (coin) => {
+    toggleWatchlist(coin);
   };
+
+  useEffect(() => {
+    console.log('Watchlist (CoinsPage):', watchlist);
+  }, [watchlist]);
 
   const filteredExchanges = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -183,7 +177,7 @@ const CoinsPage = () => {
 
     const baseCoins = (() => {
       if (activeTab === 'favorites') {
-        return coins.filter((coin) => favorites.includes(coin.id));
+        return coins.filter((coin) => watchlistIds.has(coin.id));
       }
       if (activeTab === 'heatmap') {
         return coins.slice(0, 10);
@@ -203,7 +197,7 @@ const CoinsPage = () => {
       const symbol = String(coin.symbol ?? '').toLowerCase();
       return name.includes(normalizedQuery) || symbol.includes(normalizedQuery);
     });
-  }, [activeTab, coins, favorites, query]);
+  }, [activeTab, coins, query, watchlistIds]);
 
   useEffect(() => {
     const currentLength = activeTab === 'exchanges' ? filteredExchanges.length : selectedCoins.length;
@@ -295,7 +289,6 @@ const CoinsPage = () => {
                 loading={loading}
                 error={error}
                 charts={charts}
-                favorites={favorites}
                 onToggleFavorite={toggleFavorite}
                 activeTab={activeTab}
               />

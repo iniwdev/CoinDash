@@ -16,18 +16,6 @@ export const CryptoProvider = ({ children }) => {
   const [coins, setCoins] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [watchlist, setWatchlist] = useState(() => {
-    if (typeof window === 'undefined') {
-      return [];
-    }
-
-    try {
-      const storedValue = window.localStorage.getItem('coindash_watchlist');
-      return storedValue ? JSON.parse(storedValue) : [];
-    } catch {
-      return [];
-    }
-  });
 
   const fetchCoins = useCallback(async () => {
     setLoading(true);
@@ -88,30 +76,14 @@ export const CryptoProvider = ({ children }) => {
     fetchCoins();
   }, [fetchCoins]);
 
-  useEffect(() => {
-    try {
-      window.localStorage.setItem('coindash_watchlist', JSON.stringify(watchlist));
-    } catch {
-      // Ignore write errors for unsupported browsers or storage limits.
-    }
-  }, [watchlist]);
-
-  const toggleWatchlist = useCallback((coinId) => {
-    setWatchlist((current) =>
-      current.includes(coinId) ? current.filter((id) => id !== coinId) : [...current, coinId],
-    );
-  }, []);
-
   const value = useMemo(
     () => ({
       coins,
       loading,
       error,
-      watchlist,
       fetchCoins,
-      toggleWatchlist,
     }),
-    [coins, loading, error, watchlist, fetchCoins, toggleWatchlist],
+    [coins, loading, error, fetchCoins],
   );
 
   return <CryptoContext.Provider value={value}>{children}</CryptoContext.Provider>;

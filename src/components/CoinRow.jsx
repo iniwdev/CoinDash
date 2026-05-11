@@ -58,7 +58,7 @@ const CoinRow = ({ coin, isFavorite, onToggleFavorite, chartData }) => {
           type="button"
           onClick={(event) => {
             event.stopPropagation();
-            onToggleFavorite(coin.id);
+            onToggleFavorite(coin);
           }}
           className={`text-lg transition ${isFavorite ? 'text-yellow-400 shadow-[0_0_18px_rgba(245,158,11,0.45)]' : 'text-slate-600 hover:text-slate-300'}`}
           aria-label={isFavorite ? 'Remove favorite' : 'Add favorite'}

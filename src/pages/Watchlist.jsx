@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import Layout from '../components/Layout';
@@ -11,10 +12,10 @@ import WatchlistAlerts from '../components/watchlist/WatchlistAlerts';
 import CoinDrawer from '../components/watchlist/CoinDrawer';
 import WatchlistManager from '../components/watchlist/WatchlistManager';
 import WatchlistExportShare from '../components/watchlist/WatchlistExportShare';
-import { useWatchlist } from '../context/WatchlistContext';
+import { useWatchlistStore } from '../store/useWatchlistStore.jsx';
 
 const Watchlist = () => {
-  const { getActiveWatchlist } = useWatchlist();
+  const watchlist = useWatchlistStore((state) => state.watchlist);
   const [coins, setCoins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCoin, setSelectedCoin] = useState(null);
@@ -22,10 +23,12 @@ const Watchlist = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
 
-  const activeWatchlist = getActiveWatchlist();
-  const coinIds = activeWatchlist?.coins || [];
+  const coinIds = useMemo(() => watchlist.map((coin) => coin.id), [watchlist]);
 
   useEffect(() => {
+    setCoins(watchlist);
+    console.log('Watchlist page loaded watchlist:', watchlist);
+
     if (coinIds.length === 0) {
       setCoins([]);
       setLoading(false);
@@ -126,12 +129,12 @@ const Watchlist = () => {
                   Track your favorite crypto assets and monitor the market in
                   real time.
                 </p>
-                <a
-                  href="/coins"
+                <Link
+                  to="/coins"
                   className="inline-block px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/50"
                 >
                   Explore Coins
-                </a>
+                </Link>
               </div>
             </motion.div>
           ) : (

@@ -8,11 +8,11 @@ import {
   ChevronUp,
   ChevronDown,
 } from 'lucide-react';
-import { useWatchlist } from '../../context/WatchlistContext';
+import { useWatchlistStore } from '../../store/useWatchlistStore.jsx';
 import Sparkline from '../Sparkline';
 
 const WatchlistTable = ({ coins, loading, onSelectCoin }) => {
-  const { removeCoinFromWatchlist } = useWatchlist();
+  const removeCoinFromWatchlist = useWatchlistStore((state) => state.removeFromWatchlist);
   const [sortConfig, setSortConfig] = useState({
     key: 'market_cap_rank',
     direction: 'asc',
