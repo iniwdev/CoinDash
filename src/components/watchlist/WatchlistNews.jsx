@@ -1,124 +1,80 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ExternalLink, Newspaper, Clock, TrendingUp } from 'lucide-react';
-import axios from 'axios';
 
 const WatchlistNews = ({ coins }) => {
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (coins.length === 0) return;
+    if (coins.length === 0) {
+      setNews([]);
+      setLoading(false);
+      return;
+    }
 
-    const fetchNews = async () => {
-      try {
-        setLoading(true);
-        const coinSymbols = coins.map((c) => c.symbol.toLowerCase()).join(',');
+    const generateMockNews = () => {
+      const mockTitles = [
+        "Market Update: Top Performers Today",
+        "Bitcoin Leads Market Rally with Strong Gains",
+        "Altcoins Show Mixed Signals as Market Consolidates",
+        "DeFi Sector Rebounds Amid Positive Sentiment",
+        "Institutional Interest Grows in Cryptocurrency",
+        "Security Audit Confirms Network Stability",
+        "New Partnership Announced for Crypto Integration",
+        "Trading Volume Surges on Major Exchanges",
+        "Regulatory Clarity Boosts Investor Confidence",
+        "Technical Analysis: Key Levels to Watch"
+      ];
 
-        // Try multiple news sources
-        const newsPromises = [
-          // CryptoPanic API (if available)
-          axios.get(`https://cryptopanic.com/api/v3/posts/?auth_token=YOUR_API_KEY&public=true&currencies=${coinSymbols}`)
-            .catch(() => null),
+      const mockDescriptions = [
+        "Latest market analysis shows strong momentum in selected assets",
+        "Price action indicates bullish sentiment among traders",
+        "Market correlation suggests diversification benefits",
+        "Volume indicators point to sustained interest",
+        "Technical support levels remain intact for major coins",
+        "On-chain metrics show healthy network activity",
+        "Trading pairs expand across major platforms",
+        "Institutional investors increase their positions",
+        "Market volatility remains within expected ranges",
+        "Long-term outlook supported by fundamentals"
+      ];
 
-          // NewsAPI with crypto keywords
-          axios.get(`https://newsapi.org/v2/everything?q=${coinSymbols}+crypto&apiKey=YOUR_NEWSAPI_KEY&sortBy=publishedAt&pageSize=10`)
-            .catch(() => null),
+      const sources = ["CoinDesk", "The Block", "CryptoBriefing", "Cointelegraph", "Messari"];
+      const newsItems = [];
 
-          // CoinDesk API (free tier)
-          axios.get('https://api.coindesk.com/v1/bpi/currentprice.json')
-            .then(() => ({
-              data: {
-                articles: [
-                  {
-                    title: "Bitcoin Price Update",
-                    description: "Latest Bitcoin price and market analysis",
-                    url: "https://www.coindesk.com/price/bitcoin/",
-                    urlToImage: "https://static.coindesk.com/wp-content/uploads/2023/01/Bitcoin-1-860x430.jpg",
-                    publishedAt: new Date().toISOString(),
-                    source: { name: "CoinDesk" }
-                  }
-                ]
-              }
-            }))
-            .catch(() => null)
-        ];
-
-        const results = await Promise.allSettled(newsPromises);
-        const allNews = [];
-
-        // Process CryptoPanic results
-        if (results[0].status === 'fulfilled' && results[0].value) {
-          const cryptoPanicNews = results[0].value.data.results?.map(article => ({
-            title: article.title,
-            description: article.body || article.title,
-            url: article.url,
-            urlToImage: article.image || null,
-            publishedAt: article.published_at,
-            source: { name: 'CryptoPanic' },
-            relevance: coins.some(coin =>
-              article.title.toLowerCase().includes(coin.name.toLowerCase()) ||
-              article.title.toLowerCase().includes(coin.symbol.toLowerCase())
-            ) ? 2 : 1
-          })) || [];
-          allNews.push(...cryptoPanicNews);
-        }
-
-        // Process NewsAPI results
-        if (results[1].status === 'fulfilled' && results[1].value) {
-          const newsApiArticles = results[1].value.data.articles?.map(article => ({
-            title: article.title,
-            description: article.description,
-            url: article.url,
-            urlToImage: article.urlToImage,
-            publishedAt: article.publishedAt,
-            source: article.source,
-            relevance: coins.some(coin =>
-              article.title.toLowerCase().includes(coin.name.toLowerCase()) ||
-              article.title.toLowerCase().includes(coin.symbol.toLowerCase())
-            ) ? 2 : 1
-          })) || [];
-          allNews.push(...newsApiArticles);
-        }
-
-        // Process CoinDesk fallback
-        if (results[2].status === 'fulfilled' && results[2].value) {
-          const coinDeskNews = results[2].value.data.articles?.map(article => ({
-            ...article,
-            relevance: 1
-          })) || [];
-          allNews.push(...coinDeskNews);
-        }
-
-        // Sort by relevance and recency, then limit to 6
-        const sortedNews = allNews
-          .sort((a, b) => {
-            if (a.relevance !== b.relevance) return b.relevance - a.relevance;
-            return new Date(b.publishedAt) - new Date(a.publishedAt);
-          })
-          .slice(0, 6);
-
-        setNews(sortedNews);
-      } catch (error) {
-        console.error('Error fetching news:', error);
-        // Fallback to mock news if all APIs fail
-        setNews([
-          {
-            title: "Market Analysis: Watchlist Performance Review",
-            description: "Comprehensive analysis of your selected cryptocurrencies and their recent market performance.",
-            url: "#",
-            urlToImage: null,
-            publishedAt: new Date().toISOString(),
-            source: { name: "CoinDash Analytics" },
-            relevance: 1
-          }
-        ]);
-      } finally {
-        setLoading(false);
+      // Generate 6 mock news items
+      for (let i = 0; i < 6; i++) {
+        const randomCoin = coins[Math.floor(Math.random() * coins.length)];
+        newsItems.push({
+          title: `${randomCoin.name} ${mockTitles[i % mockTitles.length]}`,
+          description: mockDescriptions[i % mockDescriptions.length],
+          url: `https://www.coingecko.com/en/coins/${randomCoin.id}`,
+          urlToImage: null,
+          publishedAt: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+          source: { name: sources[i % sources.length] },
+          relevance: 2
+        });
       }
+
+      return newsItems;
     };
 
-    fetchNews();
+    try {
+      setLoading(true);
+      // Simulate a small delay
+      const timer = setTimeout(() => {
+        const mockNews = generateMockNews();
+        setNews(mockNews);
+        setLoading(false);
+      }, 500);
+
+      return () => clearTimeout(timer);
+    } catch (error) {
+      console.error('Error generating news:', error);
+      setNews([]);
+      setLoading(false);
+    }
   }, [coins]);
 
   const formatDate = (dateString) => {
@@ -225,7 +181,7 @@ const WatchlistNews = ({ coins }) => {
       {/* News source attribution */}
       <div className="mt-6 pt-4 border-t border-white/6">
         <p className="text-slate-500 text-xs text-center">
-          News powered by CryptoPanic, NewsAPI, and CoinDesk
+          Market insights powered by CoinDash Analytics
         </p>
       </div>
     </motion.div>

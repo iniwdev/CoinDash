@@ -6,10 +6,26 @@ import {
 } from 'recharts';
 
 const WatchlistHeatmap = ({ coins }) => {
-  if (coins.length === 0) return null;
+  if (!coins || coins.length === 0) {
+    return (
+      <motion.div
+        className="bg-[#0b1120]/50 backdrop-blur-xl border border-white/6 rounded-[28px] p-6"
+        whileHover={{ borderColor: 'rgba(59, 130, 246, 0.3)' }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-white">Market Heatmap</h2>
+          <p className="text-slate-400 text-sm mt-1">24h performance by market cap</p>
+        </div>
+        <div className="h-96 w-full flex items-center justify-center text-slate-400">
+          <p>Add coins to your watchlist to view the heatmap</p>
+        </div>
+      </motion.div>
+    );
+  }
 
   const data = coins.map((coin) => ({
-    name: coin.symbol.toUpperCase(),
+    name: coin.symbol?.toUpperCase() || 'N/A',
     value: Math.abs(coin.market_cap || 1),
     change: coin.price_change_percentage_24h || 0,
     price: coin.current_price || 0,
