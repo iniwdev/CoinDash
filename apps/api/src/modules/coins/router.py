@@ -28,6 +28,18 @@ async def get_markets(
     )
 
 
+@router.get("/coins/{coin_id}")
+async def get_coin_details(coin_id: str):
+    """Proxy coin details with Redis caching. Mirrors legacy /api/market/coins/:id."""
+    return await service.get_coin_details(coin_id)
+
+
+@router.get("/global")
+async def get_global_data():
+    """Proxy global market data with Redis caching. Mirrors legacy /api/market/global."""
+    return await service.get_global_data()
+
+
 @router.get("/coins/{coin_id}/market_chart")
 async def get_coin_chart(
     coin_id: str,

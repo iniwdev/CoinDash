@@ -26,7 +26,7 @@ async def _invalidate_cache(user_id: str) -> None:
 
 
 # ── CRUD ──────────────────────────────────────────────────────────────────────
-async def list_watchlists(db: AsyncSession, user_id: str) -> list[Watchlist]:
+async def list_watchlists(db: AsyncSession, user_id: uuid.UUID) -> list[Watchlist]:
     """Get all watchlists for a user. Coins are eager-loaded via selectin."""
     result = await db.execute(
         select(Watchlist)
@@ -36,7 +36,7 @@ async def list_watchlists(db: AsyncSession, user_id: str) -> list[Watchlist]:
     return list(result.scalars().all())
 
 
-async def get_watchlist(db: AsyncSession, watchlist_id: uuid.UUID, user_id: str) -> Watchlist | None:
+async def get_watchlist(db: AsyncSession, watchlist_id: uuid.UUID, user_id: uuid.UUID) -> Watchlist | None:
     result = await db.execute(
         select(Watchlist)
         .where(Watchlist.id == watchlist_id, Watchlist.user_id == user_id)
@@ -44,7 +44,7 @@ async def get_watchlist(db: AsyncSession, watchlist_id: uuid.UUID, user_id: str)
     return result.scalar_one_or_none()
 
 
-async def create_watchlist(db: AsyncSession, user_id: str, name: str) -> Watchlist:
+async def create_watchlist(db: AsyncSession, user_id: uuid.UUID, name: str) -> Watchlist:
     watchlist = Watchlist(user_id=user_id, name=name)
     db.add(watchlist)
     await db.flush()
@@ -53,7 +53,7 @@ async def create_watchlist(db: AsyncSession, user_id: str, name: str) -> Watchli
     return watchlist
 
 
-async def rename_watchlist(db: AsyncSession, watchlist_id: uuid.UUID, user_id: str, name: str) -> Watchlist | None:
+async def rename_watchlist(db: AsyncSession, watchlist_id: uuid.UUID, user_id: uuid.UUID, name: str) -> Watchlist | None:
     watchlist = await get_watchlist(db, watchlist_id, user_id)
     if not watchlist:
         return None
@@ -64,7 +64,7 @@ async def rename_watchlist(db: AsyncSession, watchlist_id: uuid.UUID, user_id: s
     return watchlist
 
 
-async def delete_watchlist(db: AsyncSession, watchlist_id: uuid.UUID, user_id: str) -> bool:
+async def delete_watchlist(db: AsyncSession, watchlist_id: uuid.UUID, user_id: uuid.UUID) -> bool:
     watchlist = await get_watchlist(db, watchlist_id, user_id)
     if not watchlist:
         return False
@@ -74,7 +74,7 @@ async def delete_watchlist(db: AsyncSession, watchlist_id: uuid.UUID, user_id: s
     return True
 
 
-async def add_coin(db: AsyncSession, watchlist_id: uuid.UUID, user_id: str, coin_id: str) -> WatchlistCoin | None:
+async def add_coin(db: AsyncSession, watchlist_id: uuid.UUID, user_id: uuid.UUID, coin_id: str) -> WatchlistCoin | None:
     watchlist = await get_watchlist(db, watchlist_id, user_id)
     if not watchlist:
         return None
@@ -87,7 +87,7 @@ async def add_coin(db: AsyncSession, watchlist_id: uuid.UUID, user_id: str, coin
     if existing.scalar_one_or_none():
         return None  # Already exists
 
-    coin = WatchlistCoin(watchlist_id=str(watchlist_id), coin_id=coin_id)
+    coin = WatchlistCoin(watchlist_id=watchlist_id, coin_id=coin_id)
     db.add(coin)
     await db.flush()
     await db.refresh(coin)
@@ -95,7 +95,7 @@ async def add_coin(db: AsyncSession, watchlist_id: uuid.UUID, user_id: str, coin
     return coin
 
 
-async def remove_coin(db: AsyncSession, watchlist_id: uuid.UUID, user_id: str, coin_id: str) -> bool:
+async def remove_coin(db: AsyncSession, watchlist_id: uuid.UUID, user_id: uuid.UUID, coin_id: str) -> bool:
     watchlist = await get_watchlist(db, watchlist_id, user_id)
     if not watchlist:
         return False
@@ -108,7 +108,7 @@ async def remove_coin(db: AsyncSession, watchlist_id: uuid.UUID, user_id: str, c
     return result.rowcount > 0
 
 
-async def ensure_default_watchlist(db: AsyncSession, user_id: str) -> Watchlist:
+async def ensure_default_watchlist(db: AsyncSession, user_id: uuid.UUID) -> Watchlist:
     """Get or create the user's default 'Main Portfolio' watchlist."""
     result = await db.execute(
         select(Watchlist)

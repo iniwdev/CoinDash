@@ -44,22 +44,22 @@ const WatchlistHeader = ({ coins, loading }) => {
     fetchFearGreed();
   }, []);
 
-  const totalValue = coins.reduce((sum, coin) => {
+  const totalValue = (coins || []).reduce((sum, coin) => {
     return sum + (coin.current_price * (coin.total_supply || 1) || 0);
   }, 0);
 
-  const perf24h = coins.reduce((sum, coin) => {
+  const perf24h = (coins || []).reduce((sum, coin) => {
     return sum + (coin.price_change_percentage_24h || 0);
-  }, 0) / (coins.length || 1);
+  }, 0) / (coins?.length || 1);
 
-  const bestPerformer = coins.reduce((best, coin) => {
+  const bestPerformer = (coins || []).reduce((best, coin) => {
     if (!best || (coin.price_change_percentage_24h || 0) > (best.price_change_percentage_24h || 0)) {
       return coin;
     }
     return best;
   }, null);
 
-  const worstPerformer = coins.reduce((worst, coin) => {
+  const worstPerformer = (coins || []).reduce((worst, coin) => {
     if (!worst || (coin.price_change_percentage_24h || 0) < (worst.price_change_percentage_24h || 0)) {
       return coin;
     }

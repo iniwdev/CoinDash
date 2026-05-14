@@ -9,7 +9,9 @@ logger = logging.getLogger(__name__)
 COINGECKO_BASE = "https://api.coingecko.com/api/v3"
 MARKET_CACHE_TTL = 300      # 5 minutes
 CHART_CACHE_TTL = 300       # 5 minutes
+DETAIL_CACHE_TTL = 600      # 10 minutes
 EXCHANGE_CACHE_TTL = 1800   # 30 minutes (exchanges don't change as fast as prices)
+GLOBAL_CACHE_TTL = 600      # 10 minutes
 
 # ── Legacy Mock Data Fallback ────────────────────────────────────────────────
 def _get_mock_market_data(limit: int = 20) -> list[dict]:
@@ -169,3 +171,58 @@ async def get_exchanges(per_page: int = 100, page: int = 1) -> list[dict]:
             return _get_mock_exchange_data(per_page)
 
     return await get_or_set(cache_key, EXCHANGE_CACHE_TTL, fetch)
+
+
+async def get_coin_details(coin_id: str) -> dict:
+    """
+    Proxy to CoinGecko's /coins/{id} endpoint.
+    Includes full metadata, community data, and developer data.
+    """
+    cache_key = f"coin-details-{coin_id}"
+
+    async def fetch() -> dict:
+        try:
+            params = {
+                "localization": "false",
+                "tickers": "false",
+                "market_data": "true",
+                "community_data": "false",
+                "developer_data": "false",
+                "sparkline": "true"
+            }
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.get(
+                    f"{COINGECKO_BASE}/coins/{coin_id}",
+                    params=params
+                )
+            if resp.status_code == 429:
+                raise ExternalAPIError("Rate limited by CoinGecko")
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as exc:
+            logger.error("Coin details proxy error for %s: %s", coin_id, exc)
+            # No mock for details, just raise
+            raise ExternalAPIError(f"Failed to fetch details for {coin_id}")
+
+    return await get_or_set(cache_key, DETAIL_CACHE_TTL, fetch)
+
+
+async def get_global_data() -> dict:
+    """
+    Proxy to CoinGecko's /global endpoint.
+    """
+    cache_key = "global-market-data"
+
+    async def fetch() -> dict:
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.get(f"{COINGECKO_BASE}/global")
+            if resp.status_code == 429:
+                raise ExternalAPIError("Rate limited by CoinGecko")
+            resp.raise_for_status()
+            return resp.json().get("data", {})
+        except Exception as exc:
+            logger.error("Global data proxy error: %s", exc)
+            raise ExternalAPIError("Failed to fetch global market data")
+
+    return await get_or_set(cache_key, GLOBAL_CACHE_TTL, fetch)

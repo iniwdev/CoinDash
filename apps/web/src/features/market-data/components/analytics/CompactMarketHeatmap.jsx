@@ -47,7 +47,7 @@ const CompactMarketHeatmap = ({ coin }) => {
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {topCoins.slice(0, 8).map((coinData) => {
+        {Array.isArray(topCoins) && topCoins.slice(0, 8).map((coinData) => {
           const change = coinData.price_change_percentage_24h || 0;
           const isUp = change >= 0;
           const intensity = Math.min(Math.abs(change) * 2, 100);

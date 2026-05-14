@@ -20,9 +20,10 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # Auth
-    jwt_secret: str = "change-me"
+    jwt_secret: str = "change-me-at-least-32-chars-long-please-for-security"
     jwt_algorithm: str = "HS256"
-    jwt_expire_minutes: int = 10080  # 7 days
+    access_token_expire_minutes: int = 30
+    refresh_token_expire_days: int = 7
 
     # External APIs
     groq_api_key: str = ""

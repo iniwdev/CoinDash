@@ -10,7 +10,9 @@ export const fetchCoinHistoricalPrices = async (coinId, days = 90) => {
       params: { vs_currency: 'usd', days }
     });
     
-    return response.data.prices.map((p) => p[1]); // Return just prices
+    const prices = response.data?.prices;
+    if (!Array.isArray(prices)) return [];
+    return prices.map((p) => p[1]); // Return just prices
   } catch (err) {
     console.error('Error fetching historical prices:', err);
     return [];
@@ -18,32 +20,38 @@ export const fetchCoinHistoricalPrices = async (coinId, days = 90) => {
 };
 
 export const fetchCoinMarketData = async (coinId) => {
-  // Currently the backend doesn't have a specific GET /market/coins/{id} endpoint migrated.
-  // We will temporarily leave this hitting the external API, but ideally it should be migrated.
-  // Wait, I will rewrite this to use the proxy if available, but since I didn't migrate that endpoint
-  // I must be careful. Let's look at legacy Express API. 
-  // Wait! The user said: "For external APIs not yet migrated... leave them as direct fetch calls"
   try {
-    const response = await fetch(
-      `https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false`
-    );
-    if (!response.ok) throw new Error('Failed to fetch');
+    const response = await apiClient.get(`/market/coins/${coinId}`);
+    const data = response.data;
+    
+    if (!data || !data.market_data) {
+      console.error('Invalid coin market data received');
+      return null;
+    }
 
-    const data = await response.json();
     return {
-      symbol: data.symbol.toUpperCase(),
-      name: data.name,
-      currentPrice: data.market_data.current_price.usd,
-      marketCap: data.market_data.market_cap.usd,
-      marketCapRank: data.market_data.market_cap_rank,
-      volume24h: data.market_data.total_volume.usd,
-      change24h: data.market_data.price_change_percentage_24h,
-      change7d: data.market_data.price_change_percentage_7d,
-      change30d: data.market_data.price_change_percentage_30d,
-      athPrice: data.market_data.ath.usd,
-      atlPrice: data.market_data.atl.usd,
-      circulatingSupply: data.market_data.circulating_supply,
-      totalSupply: data.market_data.total_supply,
+      id: data.id,
+      symbol: data.symbol?.toUpperCase() || '',
+      name: data.name || '',
+      currentPrice: data.market_data.current_price?.usd || 0,
+      price: data.market_data.current_price?.usd || 0, // Alias
+      marketCap: data.market_data.market_cap?.usd || 0,
+      marketCapRank: data.market_data.market_cap_rank || 0,
+      rank: data.market_data.market_cap_rank || 0, // Alias
+      volume24h: data.market_data.total_volume?.usd || 0,
+      volume: data.market_data.total_volume?.usd || 0, // Alias
+      change24h: data.market_data.price_change_percentage_24h || 0,
+      priceChange1d: data.market_data.price_change_percentage_24h || 0, // Alias
+      change7d: data.market_data.price_change_percentage_7d || 0,
+      change30d: data.market_data.price_change_percentage_30d || 0,
+      athPrice: data.market_data.ath?.usd || 0,
+      atlPrice: data.market_data.atl?.usd || 0,
+      circulatingSupply: data.market_data.circulating_supply || 0,
+      availableSupply: data.market_data.circulating_supply || 0, // Alias
+      totalSupply: data.market_data.total_supply || 0,
+      maxSupply: data.market_data.max_supply || 0,
+      icon: data.image?.large || data.image?.small || data.image?.thumb || '',
+      description: data.description?.en || '',
     };
   } catch (err) {
     console.error('Error fetching coin market data:', err);
@@ -57,9 +65,9 @@ export const fetchCoinNews = async (coinId, limit = 3) => {
       params: { coin: coinId }
     });
     
-    // The FastAPI backend already maps and slices the RSS feeds properly.
-    // However, it returns an object { articles: [...] }.
-    return response.data.articles.slice(0, limit);
+    const articles = response.data?.articles;
+    if (!Array.isArray(articles)) return [];
+    return articles.slice(0, limit);
   } catch (err) {
     console.error('Error fetching coin news:', err);
     return [];
@@ -68,10 +76,8 @@ export const fetchCoinNews = async (coinId, limit = 3) => {
 
 export const fetchGlobalData = async () => {
   try {
-    const response = await fetch('https://api.coingecko.com/api/v3/global');
-    if (!response.ok) throw new Error('Failed to fetch');
-    const data = await response.json();
-    return data.data;
+    const response = await apiClient.get('/market/global');
+    return response.data;
   } catch (err) {
     console.error('Error fetching global data:', err);
     return null;

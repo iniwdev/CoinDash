@@ -10,7 +10,7 @@ from src.db.redis import get_redis
 logger = logging.getLogger(__name__)
 
 
-async def _invalidate_cache(user_id: str) -> None:
+async def _invalidate_cache(user_id: uuid.UUID) -> None:
     try:
         client = get_redis()
         await client.delete(f"alerts:user:{user_id}")
@@ -19,7 +19,7 @@ async def _invalidate_cache(user_id: str) -> None:
 
 
 # ── CRUD ──────────────────────────────────────────────────────────────────────
-async def list_alerts(db: AsyncSession, user_id: str) -> list[Alert]:
+async def list_alerts(db: AsyncSession, user_id: uuid.UUID) -> list[Alert]:
     result = await db.execute(
         select(Alert)
         .where(Alert.user_id == user_id)
@@ -28,7 +28,7 @@ async def list_alerts(db: AsyncSession, user_id: str) -> list[Alert]:
     return list(result.scalars().all())
 
 
-async def list_alerts_for_coin(db: AsyncSession, user_id: str, coin_id: str) -> list[Alert]:
+async def list_alerts_for_coin(db: AsyncSession, user_id: uuid.UUID, coin_id: str) -> list[Alert]:
     result = await db.execute(
         select(Alert)
         .where(Alert.user_id == user_id, Alert.coin_id == coin_id)
@@ -37,7 +37,7 @@ async def list_alerts_for_coin(db: AsyncSession, user_id: str, coin_id: str) -> 
     return list(result.scalars().all())
 
 
-async def create_alert(db: AsyncSession, user_id: str, coin_id: str, type: str, value: float) -> Alert:
+async def create_alert(db: AsyncSession, user_id: uuid.UUID, coin_id: str, type: str, value: float) -> Alert:
     alert = Alert(user_id=user_id, coin_id=coin_id, type=type, value=value)
     db.add(alert)
     await db.flush()
@@ -46,7 +46,7 @@ async def create_alert(db: AsyncSession, user_id: str, coin_id: str, type: str, 
     return alert
 
 
-async def delete_alert(db: AsyncSession, alert_id: uuid.UUID, user_id: str) -> bool:
+async def delete_alert(db: AsyncSession, alert_id: uuid.UUID, user_id: uuid.UUID) -> bool:
     result = await db.execute(
         select(Alert).where(Alert.id == alert_id, Alert.user_id == user_id)
     )

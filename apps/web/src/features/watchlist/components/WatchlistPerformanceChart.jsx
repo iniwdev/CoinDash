@@ -34,8 +34,7 @@ const WatchlistPerformanceChart = ({ coins, timeRange, onTimeRangeChange }) => {
         const days = timeRange === '24h' ? 1 : timeRange === '7d' ? 7 : timeRange === '1m' ? 30 : 365;
 
         // Fetch historical data for all coins in watchlist
-        // Route through Vite proxy → FastAPI → CoinGecko (Redis cached)
-        const promises = coins.map((coin) =>
+        const promises = (coins || []).map((coin) =>
           apiClient.get(`/market/coins/${coin.id}/market_chart`, {
             params: { vs_currency: 'usd', days }
           })
@@ -48,21 +47,26 @@ const WatchlistPerformanceChart = ({ coins, timeRange, onTimeRangeChange }) => {
 
         results.forEach((result, idx) => {
           const coin = coins[idx];
-          const prices = result.data.prices;
+          const prices = result.data?.prices;
 
-          prices.forEach(([timestamp, price]) => {
-            const date = new Date(timestamp);
-            const key = days === 1 ? date.toISOString().split('T')[0] + ' ' + date.getHours() + ':00' : date.toISOString().split('T')[0];
+          if (Array.isArray(prices)) {
+            prices.forEach(([timestamp, price]) => {
+              const date = new Date(timestamp);
+              const key =
+                days === 1
+                  ? date.toISOString().split('T')[0] + ' ' + date.getHours() + ':00'
+                  : date.toISOString().split('T')[0];
 
-            if (!dataMap.has(key)) {
-              dataMap.set(key, {
-                date: key,
-                timestamp,
-              });
-            }
+              if (!dataMap.has(key)) {
+                dataMap.set(key, {
+                  date: key,
+                  timestamp,
+                });
+              }
 
-            dataMap.get(key)[coin.symbol.toUpperCase()] = price;
-          });
+              dataMap.get(key)[coin.symbol.toUpperCase()] = price;
+            });
+          }
         });
 
         // Convert to array and sort by timestamp

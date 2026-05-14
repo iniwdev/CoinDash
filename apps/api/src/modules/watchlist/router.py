@@ -1,9 +1,11 @@
 import uuid
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_db
+from src.modules.auth.dependencies import CurrentUser
 from src.modules.watchlist import service
 from src.modules.watchlist.schemas import (
     WatchlistAddCoin,
@@ -15,26 +17,17 @@ from src.modules.watchlist.schemas import (
 
 router = APIRouter(prefix="/watchlists", tags=["watchlists"])
 
-# ── Mock Auth Dependency ──────────────────────────────────────────────────────
-# TODO: Replace with real JWT auth in Phase 4.5
-MOCK_USER_ID = "00000000-0000-0000-0000-000000000001"
-
-
-async def get_current_user_id() -> str:
-    """Temporary mock auth. Returns a static user ID for development."""
-    return MOCK_USER_ID
-
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 @router.get("/", response_model=WatchlistListOut)
 async def list_watchlists(
+    user: CurrentUser,
     db: AsyncSession = Depends(get_db),
-    user_id: str = Depends(get_current_user_id),
 ):
     """List all watchlists for the current user. Seeds a default one if none exist."""
-    watchlists = await service.list_watchlists(db, user_id)
+    watchlists = await service.list_watchlists(db, user.id)
     if not watchlists:
-        default = await service.ensure_default_watchlist(db, user_id)
+        default = await service.ensure_default_watchlist(db, user.id)
         watchlists = [default]
     return WatchlistListOut(watchlists=watchlists)
 
@@ -42,21 +35,21 @@ async def list_watchlists(
 @router.post("/", response_model=WatchlistOut, status_code=status.HTTP_201_CREATED)
 async def create_watchlist(
     body: WatchlistCreate,
+    user: CurrentUser,
     db: AsyncSession = Depends(get_db),
-    user_id: str = Depends(get_current_user_id),
 ):
     """Create a new watchlist."""
-    return await service.create_watchlist(db, user_id, body.name)
+    return await service.create_watchlist(db, user.id, body.name)
 
 
 @router.get("/{watchlist_id}", response_model=WatchlistOut)
 async def get_watchlist(
     watchlist_id: uuid.UUID,
+    user: CurrentUser,
     db: AsyncSession = Depends(get_db),
-    user_id: str = Depends(get_current_user_id),
 ):
     """Get a single watchlist by ID."""
-    wl = await service.get_watchlist(db, watchlist_id, user_id)
+    wl = await service.get_watchlist(db, watchlist_id, user.id)
     if not wl:
         raise HTTPException(status_code=404, detail="Watchlist not found")
     return wl
@@ -66,11 +59,11 @@ async def get_watchlist(
 async def rename_watchlist(
     watchlist_id: uuid.UUID,
     body: WatchlistRename,
+    user: CurrentUser,
     db: AsyncSession = Depends(get_db),
-    user_id: str = Depends(get_current_user_id),
 ):
     """Rename a watchlist."""
-    wl = await service.rename_watchlist(db, watchlist_id, user_id, body.name)
+    wl = await service.rename_watchlist(db, watchlist_id, user.id, body.name)
     if not wl:
         raise HTTPException(status_code=404, detail="Watchlist not found")
     return wl
@@ -79,11 +72,11 @@ async def rename_watchlist(
 @router.delete("/{watchlist_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_watchlist(
     watchlist_id: uuid.UUID,
+    user: CurrentUser,
     db: AsyncSession = Depends(get_db),
-    user_id: str = Depends(get_current_user_id),
 ):
     """Delete a watchlist and all its coins."""
-    deleted = await service.delete_watchlist(db, watchlist_id, user_id)
+    deleted = await service.delete_watchlist(db, watchlist_id, user.id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Watchlist not found")
 
@@ -92,14 +85,14 @@ async def delete_watchlist(
 async def add_coin(
     watchlist_id: uuid.UUID,
     body: WatchlistAddCoin,
+    user: CurrentUser,
     db: AsyncSession = Depends(get_db),
-    user_id: str = Depends(get_current_user_id),
 ):
     """Add a coin to a watchlist. Returns the updated watchlist."""
-    coin = await service.add_coin(db, watchlist_id, user_id, body.coin_id)
+    coin = await service.add_coin(db, watchlist_id, user.id, body.coin_id)
     if not coin:
         raise HTTPException(status_code=400, detail="Watchlist not found or coin already in watchlist")
-    wl = await service.get_watchlist(db, watchlist_id, user_id)
+    wl = await service.get_watchlist(db, watchlist_id, user.id)
     return wl
 
 
@@ -107,12 +100,12 @@ async def add_coin(
 async def remove_coin(
     watchlist_id: uuid.UUID,
     coin_id: str,
+    user: CurrentUser,
     db: AsyncSession = Depends(get_db),
-    user_id: str = Depends(get_current_user_id),
 ):
     """Remove a coin from a watchlist. Returns the updated watchlist."""
-    removed = await service.remove_coin(db, watchlist_id, user_id, coin_id)
+    removed = await service.remove_coin(db, watchlist_id, user.id, coin_id)
     if not removed:
         raise HTTPException(status_code=404, detail="Watchlist or coin not found")
-    wl = await service.get_watchlist(db, watchlist_id, user_id)
+    wl = await service.get_watchlist(db, watchlist_id, user.id)
     return wl

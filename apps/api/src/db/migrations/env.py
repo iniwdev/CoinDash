@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 # Import all models here so Alembic can detect them
 from src.db.base import Base
-from src.modules.auth.models import User  # noqa: F401
+from src.modules.auth.models import User, RefreshToken  # noqa: F401
 from src.modules.watchlist.models import Watchlist, WatchlistCoin  # noqa: F401
 from src.modules.alerts.models import Alert  # noqa: F401
 
@@ -30,7 +30,11 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection):
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection, 
+        target_metadata=target_metadata,
+        render_as_batch=True  # Required for SQLite ALTER operations
+    )
     with context.begin_transaction():
         context.run_migrations()
 

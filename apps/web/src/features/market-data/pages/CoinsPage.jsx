@@ -19,10 +19,11 @@ const CoinsPage = () => {
   const [exchanges, setExchanges] = useState([]);
   const watchlist = useWatchlistStore((state) => state.watchlist);
   const toggleWatchlist = useWatchlistStore((state) => state.toggleWatchlist);
-  const watchlistIds = useMemo(() => new Set(watchlist.map((item) => item.id)), [watchlist]);
+  const watchlistIds = useMemo(() => new Set((watchlist || []).map((item) => item.id)), [watchlist]);
   const [exchangesLoading, setExchangesLoading] = useState(true);
   const [exchangesError, setExchangesError] = useState(null);
   const [charts, setCharts] = useState({});
+  const [globalData, setGlobalData] = useState(null);
   const { searchQuery: query } = useUIStore();
 
   const coinsPerPage = 10;
@@ -53,13 +54,11 @@ const CoinsPage = () => {
       setExchangesLoading(true);
       setExchangesError(null);
 
-      // Use the proxied backend endpoint instead of direct CoinGecko call
-      const response = await fetch('/api/market/exchanges?per_page=250&page=1');
-      if (!response.ok) {
-        throw new Error(`Exchanges API error: ${response.status}`);
-      }
+      // Use the proxied backend endpoint via apiClient
+      const { data } = await apiClient.get('/market/exchanges', {
+        params: { per_page: 250, page: 1 }
+      });
 
-      const data = await response.json();
       const normalized = Array.isArray(data)
         ? data.map((exchange, index) => {
             const volume24h = typeof exchange.trade_volume_24h_btc === 'number' ? exchange.trade_volume_24h_btc : 0;
@@ -98,6 +97,18 @@ const CoinsPage = () => {
     loadExchanges();
   }, [loadExchanges]);
 
+  useEffect(() => {
+    const loadGlobalData = async () => {
+      try {
+        const { data } = await apiClient.get('/market/global');
+        setGlobalData(data);
+      } catch (err) {
+        console.error('Failed to load global data:', err);
+      }
+    };
+    loadGlobalData();
+  }, []);
+
   const toggleFavorite = (coin) => {
     toggleWatchlist(coin);
   };
@@ -121,6 +132,8 @@ const CoinsPage = () => {
     const normalizedQuery = query.trim().toLowerCase();
 
     const baseCoins = (() => {
+      if (!Array.isArray(coins)) return [];
+      
       if (activeTab === 'favorites') {
         return coins.filter((coin) => watchlistIds.has(coin.id));
       }
@@ -133,11 +146,12 @@ const CoinsPage = () => {
       return coins;
     })();
 
+
     if (!normalizedQuery) {
       return baseCoins;
     }
 
-    return baseCoins.filter((coin) => {
+    return (baseCoins || []).filter((coin) => {
       const name = String(coin.name ?? '').toLowerCase();
       const symbol = String(coin.symbol ?? '').toLowerCase();
       return name.includes(normalizedQuery) || symbol.includes(normalizedQuery);
@@ -165,6 +179,17 @@ const CoinsPage = () => {
   const exchangesTotalPages = Math.max(1, Math.ceil(filteredExchanges.length / coinsPerPage));
 
   const marketStats = useMemo(() => {
+    if (globalData) {
+      return {
+        marketCap: globalData.total_market_cap?.usd || 0,
+        marketCapChange: globalData.market_cap_change_percentage_24h_usd || 0,
+        volume24h: globalData.total_volume?.usd || 0,
+        volumeChange: 0, // Not provided by CG global basic
+        btcDominance: globalData.market_cap_percentage?.btc || 0,
+        btcDominanceChange: 0,
+      };
+    }
+
     if (!coins.length) {
       return {
         marketCap: 0,
@@ -183,13 +208,13 @@ const CoinsPage = () => {
 
     return {
       marketCap: totalMarketCap,
-      marketCapChange: 2.4,
+      marketCapChange: 0,
       volume24h: totalVolume,
-      volumeChange: -1.3,
+      volumeChange: 0,
       btcDominance: btcDominance,
-      btcDominanceChange: 0.8,
+      btcDominanceChange: 0,
     };
-  }, [coins]);
+  }, [coins, globalData]);
 
   return (
     <Layout>

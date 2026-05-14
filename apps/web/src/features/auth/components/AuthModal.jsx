@@ -33,7 +33,11 @@ const AuthModal = () => {
       ? await login(email, password)
       : await signup(email, password);
 
-    if (!result.success) {
+    if (result.success) {
+      // Close modal and reset form on success
+      closeAuthModal();
+      resetForm();
+    } else {
       setError(result.message);
     }
 
@@ -285,6 +289,25 @@ const AuthModal = () => {
                           />
                         </div>
 
+                        <div className="relative">
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full px-5 py-4 pr-12 bg-[#0b0f1a] border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-orange-400/50 focus:ring-2 focus:ring-orange-400/15 transition-all duration-300 text-base backdrop-blur-sm"
+                            placeholder="Password"
+                            required
+                            minLength={8}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-orange-400 transition-colors duration-200"
+                          >
+                            {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
+                          </button>
+                        </div>
+
                         {error && (
                           <motion.div
                             initial={{ opacity: 0, y: -10 }}
@@ -309,10 +332,10 @@ const AuthModal = () => {
                                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                                 className="w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full"
                               />
-                              Creating account...
+                              Creating account…
                             </>
                           ) : (
-                            'Continue'
+                            'Create Account'
                           )}
                         </motion.button>
                       </form>

@@ -31,16 +31,18 @@ const Heatmap = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(
-        `/api/market/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${itemCount}&page=1&sparkline=false&price_change_percentage=${timeframe}`
-      );
+      const response = await apiClient.get('/market/coins/markets', {
+        params: {
+          vs_currency: 'usd',
+          order: 'market_cap_desc',
+          per_page: itemCount,
+          page: 1,
+          sparkline: false,
+          price_change_percentage: timeframe
+        }
+      });
 
-      if (!response.ok) {
-        throw new Error(`CoinGecko API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setCoins(data);
+      setCoins(response.data);
     } catch (fetchError) {
       console.error('Heatmap fetch error:', fetchError);
       setError(fetchError.message);

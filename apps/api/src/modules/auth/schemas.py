@@ -1,4 +1,8 @@
-from pydantic import BaseModel, EmailStr, field_validator
+import uuid
+from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 
 
 # ── Requests ──────────────────────────────────────────────────────────────────
@@ -19,22 +23,32 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
 # ── Responses ─────────────────────────────────────────────────────────────────
 class UserOut(BaseModel):
     """Minimal user object returned to frontend. Matches legacy Express shape."""
-    id: str
-    email: str
+    model_config = ConfigDict(from_attributes=True)
 
-    model_config = {"from_attributes": True}
+    id: uuid.UUID
+    email: EmailStr
+    is_active: bool
+    created_at: datetime
 
 
-class AuthResponse(BaseModel):
-    """Matches legacy Express auth response shape exactly."""
-    message: str
-    token: str
+class Token(BaseModel):
+    """Token response for login/refresh."""
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
     user: UserOut
 
 
-class MeResponse(BaseModel):
-    """Matches legacy GET /api/auth/me response shape."""
-    user: UserOut
+# ── Internal ──────────────────────────────────────────────────────────────────
+class TokenData(BaseModel):
+    """Payload stored in JWT."""
+    sub: Optional[str] = None
+    exp: Optional[int] = None
+    type: Optional[str] = None  # 'access' or 'refresh'

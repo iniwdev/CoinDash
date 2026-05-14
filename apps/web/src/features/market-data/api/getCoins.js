@@ -23,6 +23,8 @@ const normalizeCoinStats = (coin, index) => ({
  */
 const normalizeCoinGecko = (coin, index) => {
   const priceChange24h = typeof coin.price_change_percentage_24h === 'number' ? coin.price_change_percentage_24h : 0;
+  const marketCap = typeof coin.market_cap === 'number' ? coin.market_cap : 0;
+  const volume = typeof coin.total_volume === 'number' ? coin.total_volume : 0;
   
   return {
     id: coin.id || `coin-${index}`,
@@ -34,14 +36,19 @@ const normalizeCoinGecko = (coin, index) => {
     priceChange24h: priceChange24h,
     priceChange1d: priceChange24h, // Alias for component compatibility
     priceChange7d: typeof coin.price_change_percentage_7d_in_currency === 'number' ? coin.price_change_percentage_7d_in_currency : 0,
-    marketCap: coin.market_cap ?? 0,
-    volume: coin.total_volume ?? 0,
+    priceChange1w: typeof coin.price_change_percentage_7d_in_currency === 'number' ? coin.price_change_percentage_7d_in_currency : 0, // Alias for CoinDetails
+    marketCap: marketCap,
+    volume: volume,
+    volume24h: volume, // Alias
     low24h: coin.low_24h ?? 0,
     high24h: coin.high_24h ?? 0,
     priceLow24h: coin.low_24h ?? 0,
     priceHigh24h: coin.high_24h ?? 0,
     totalSupply: coin.total_supply ?? 0,
-    availableSupply: coin.circulating_supply ?? 0,
+    maxSupply: coin.max_supply ?? 0,
+    circulatingSupply: coin.circulating_supply ?? 0,
+    availableSupply: coin.circulating_supply ?? 0, // Alias for CoinDetails
+    fullyDilutedValuation: coin.fully_diluted_valuation ?? (coin.total_supply ? coin.total_supply * coin.current_price : marketCap),
     icon: coin.image || '',
     sparkline: coin.sparkline_in_7d?.price || [],
   };
@@ -61,7 +68,11 @@ export const getCoins = async () => {
       }
     });
 
-    // The backend mirrors the CoinGecko response contract
+    // The backend mirrors the CoinGecko response contract (an array of coins)
+    if (!Array.isArray(response.data)) {
+      console.error('Expected array from market API, got:', typeof response.data);
+      return [];
+    }
     return response.data.map(normalizeCoinGecko);
   } catch (error) {
     console.error('API fetch failure:', error);

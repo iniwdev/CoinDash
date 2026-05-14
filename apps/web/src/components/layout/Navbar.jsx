@@ -8,12 +8,20 @@ import SearchDropdown from "@/features/market-data/components/SearchDropdown";
 const Navbar = React.memo(() => {
   const { searchQuery, setSearchQuery, openAuthModal } = useUIStore();
   const { data: coins = [] } = useCoins();
-  const { user, logout } = useAuthStore();
+  const { user, authStatus, logout } = useAuthStore();
   const [query, setQuery] = useState(searchQuery);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    await logout();
+    setIsLoggingOut(false);
+    navigate('/');
+  };
 
   useEffect(() => {
     setQuery(searchQuery);
@@ -158,15 +166,16 @@ const Navbar = React.memo(() => {
             </button>
             {user ? (
               <>
-                <span className="text-sm text-slate-300">
-                  Welcome, {user.email.split('@')[0]}
+                <span className="text-sm text-slate-300 hidden sm:inline">
+                  {user.email?.split('@')[0] ?? 'User'}
                 </span>
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
                   type="button"
-                  className="text-sm font-medium text-slate-300 transition hover:text-white"
+                  className="text-sm font-medium text-slate-300 transition hover:text-white disabled:opacity-50"
                 >
-                  Logout
+                  {isLoggingOut ? 'Signing out…' : 'Logout'}
                 </button>
               </>
             ) : (

@@ -23,7 +23,7 @@ const Watchlist = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
 
-  const coinIds = useMemo(() => watchlist.map((coin) => coin.id), [watchlist]);
+  const coinIds = useMemo(() => (watchlist || []).map((coin) => coin.id), [watchlist]);
 
   useEffect(() => {
     setCoins(watchlist);
@@ -48,7 +48,7 @@ const Watchlist = () => {
             price_change_percentage: '1h,24h,7d',
           }
         });
-        setCoins(response.data);
+        setCoins(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
         console.error('Error fetching watchlist coins:', error);
       } finally {
@@ -64,7 +64,7 @@ const Watchlist = () => {
     return () => clearInterval(interval);
   }, [coinIds]);
 
-  const filteredCoins = coins.filter((coin) => {
+  const filteredCoins = (coins || []).filter((coin) => {
     const matchesSearch =
       coin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       coin.symbol.toLowerCase().includes(searchTerm.toLowerCase());
