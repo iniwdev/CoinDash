@@ -21,6 +21,20 @@
   overflow-y: auto;
 }
 
+/* ── Typing cursor (text reveal animation) ─────────────────────────────────── */
+.ai-cursor {
+  display: inline-block;
+  color: #a855f7;
+  animation: blink 0.8s step-end infinite;
+  margin-left: 1px;
+  font-weight: 300;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
 /* AI Modal Container */
 .ai-modal {
   position: relative;
