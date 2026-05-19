@@ -51,22 +51,8 @@ function App() {
           <Route path="/coins" element={<CoinsPage />} />
 
           {/* ── Protected routes ───────────────────────────────────────── */}
-          <Route
-            path="/watchlist"
-            element={
-              <ProtectedRoute>
-                <Watchlist />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/portfolio"
-            element={
-              <ProtectedRoute>
-                <Portfolio />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/watchlist" element={<Watchlist />} />
+          <Route path="/portfolio" element={<Portfolio />} />
           <Route
             path="/wallet/:walletId"
             element={
