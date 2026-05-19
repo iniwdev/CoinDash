@@ -1,17 +1,21 @@
 """
 AI router — CoinDash AI
 
-Exposes POST /api/v1/ai/chat for the CoinDash AI assistant.
-Follows the same patterns as auth/coins/watchlist/alerts routers:
+Exposes two endpoints:
+    POST /api/v1/ai/chat          — standard JSON request/response
+    POST /api/v1/ai/chat/stream   — Server-Sent Events (SSE) token streaming
+
+Both follow the same patterns as other CoinDash routers:
     - APIRouter with prefix + tags
-    - Pydantic request/response models
-    - Thin controller that delegates to service layer
+    - Pydantic request models
+    - Thin controllers that delegate to service layer
     - Structured logging
 """
 
 from __future__ import annotations
 
 from fastapi import APIRouter, status
+from fastapi.responses import StreamingResponse
 
 from src.core.logging import get_logger
 from src.modules.ai import service
@@ -33,7 +37,46 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 )
 async def chat(body: ChatRequest) -> ChatResponse:
     """
-    Thin controller — all business logic lives in service.py.
+    Non-streaming endpoint. Returns a complete JSON response.
+    Kept for backward compatibility and simpler clients.
     """
     reply = await service.chat(body.message)
     return ChatResponse(reply=reply)
+
+
+@router.post(
+    "/chat/stream",
+    summary="Stream chat with CoinDash AI",
+    description="Same as /chat, but returns Server-Sent Events (SSE) for "
+                "real-time token-by-token streaming. Events: "
+                "'token' (partial text), 'done' (stream complete), "
+                "'error' (on failure).",
+    responses={
+        200: {
+            "content": {"text/event-stream": {}},
+            "description": "SSE stream of AI tokens",
+        }
+    },
+)
+async def chat_stream(body: ChatRequest) -> StreamingResponse:
+    """
+    Streaming endpoint. Returns a text/event-stream response.
+
+    The StreamingResponse wraps the async generator from service.chat_stream(),
+    which yields pre-formatted SSE frames. FastAPI/Starlette will flush each
+    chunk as it arrives, giving the frontend real-time token delivery.
+
+    Headers:
+        Cache-Control: no-cache       — prevents proxy/CDN buffering
+        X-Accel-Buffering: no         — disables nginx buffering
+        Connection: keep-alive        — keeps the stream open
+    """
+    return StreamingResponse(
+        service.chat_stream(body.message),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )

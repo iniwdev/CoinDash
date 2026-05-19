@@ -1,25 +1,26 @@
 /**
  * CoinDashAI.jsx — CoinDash AI
  *
- * Production-grade AI chat panel.
+ * Production-grade AI chat panel with real-time SSE token streaming.
  *
- * Key upgrades over the previous version:
- *  - Uses aiService.js (Axios + interceptors) instead of raw fetch
- *  - AbortController via aiService cancels stale in-flight requests
- *  - Typing animation with character-by-character text reveal on AI replies
- *  - Distinct error bubble (red accent) vs normal AI reply bubble
+ * Key features:
+ *  - Real token streaming via SSE (ChatGPT-style UX)
+ *  - Tokens rendered in real-time as they arrive from Groq
+ *  - Blinking cursor during active stream
+ *  - AbortController cancellation on unmount or new message
+ *  - Distinct error bubbles (red accent) with Retry button
  *  - Loading skeleton while waiting for first token
- *  - Mobile-responsive layout preserved from original CSS
- *  - All Framer Motion transitions preserved exactly
- *  - useRef guard prevents React state updates after unmount
+ *  - isMountedRef guard against post-unmount setState
+ *  - All original Framer Motion transitions preserved
+ *  - Mobile-responsive layout via CoinDashAI.css
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { IoClose, IoSend, IoSparkles, IoRefresh } from 'react-icons/io5';
+import { IoClose, IoSend, IoSparkles, IoRefresh, IoStop } from 'react-icons/io5';
 import { FiMessageSquare, FiAlertCircle } from 'react-icons/fi';
-import { sendChatMessage, cancelActiveRequest } from '../aiService';
+import { streamChatMessage, cancelActiveRequest } from '../aiService';
 import './CoinDashAI.css';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -34,13 +35,10 @@ const SUGGESTED_PROMPTS = [
   "DeFi yield farming strategies",
 ];
 
-// Typing reveal speed in milliseconds per character
-const TYPING_SPEED_MS = 8;
-
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-/** Three-dot pulsing indicator shown while waiting for the AI response */
+/** Three-dot pulsing indicator shown while waiting for the first token */
 const TypingIndicator = () => (
   <div className="flex items-center gap-2 px-1 py-1">
     <div className="flex gap-1">
@@ -56,7 +54,7 @@ const TypingIndicator = () => (
   </div>
 );
 
-/** Skeleton shimmer shown for the AI bubble while streaming begins */
+/** Skeleton shown before the AI bubble materialises */
 const MessageSkeleton = () => (
   <div className="flex justify-start">
     <div className="bg-white/10 border border-white/10 rounded-2xl px-4 py-3 max-w-[75%] w-64">
@@ -65,14 +63,10 @@ const MessageSkeleton = () => (
   </div>
 );
 
-/**
- * A single chat bubble.
- * AI bubbles support a character-by-character reveal animation via the
- * `isTyping` + `displayText` props.
- */
+/** A single chat bubble with streaming cursor support */
 const MessageBubble = ({ message }) => {
-  const isUser   = message.role === 'user';
-  const isError  = message.isError === true;
+  const isUser  = message.role === 'user';
+  const isError = message.isError === true;
 
   return (
     <motion.div
@@ -91,7 +85,6 @@ const MessageBubble = ({ message }) => {
               : 'bg-white/10 border border-white/10 text-slate-200',
         ].join(' ')}
       >
-        {/* Error icon for error bubbles */}
         {isError && (
           <div className="flex items-center gap-2 mb-1">
             <FiAlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
@@ -101,8 +94,8 @@ const MessageBubble = ({ message }) => {
 
         <p className="message-content text-sm leading-relaxed whitespace-pre-wrap break-words">
           {message.displayText ?? message.content}
-          {/* Blinking cursor while text is still being revealed */}
-          {message.isTyping && (
+          {/* Blinking cursor while stream is active */}
+          {message.isStreaming && (
             <span className="ai-cursor" aria-hidden="true">▌</span>
           )}
         </p>
@@ -116,15 +109,16 @@ const MessageBubble = ({ message }) => {
 
 // ── Main component ────────────────────────────────────────────────────────────
 const CoinDashAI = ({ onClose }) => {
-  const [messages,           setMessages]           = useState([]);
-  const [inputValue,         setInputValue]         = useState('');
-  const [isLoading,          setIsLoading]          = useState(false);
-  const [isMounted,          setIsMounted]          = useState(false);
+  const [messages,    setMessages]    = useState([]);
+  const [inputValue,  setInputValue]  = useState('');
+  const [isLoading,   setIsLoading]   = useState(false);  // waiting for first token
+  const [isStreaming,  setIsStreaming]  = useState(false);  // tokens actively arriving
+  const [isMounted,   setIsMounted]   = useState(false);
 
   const messagesEndRef = useRef(null);
   const textareaRef    = useRef(null);
-  const isMountedRef   = useRef(true);   // guards async state updates after unmount
-  const typingTimerRef = useRef(null);   // holds the setInterval for text reveal
+  const isMountedRef   = useRef(true);
+  const cancelStreamRef = useRef(null);  // stores the cancel() fn from streamChatMessage
 
 
   // ── Lifecycle ───────────────────────────────────────────────────────────────
@@ -134,8 +128,7 @@ const CoinDashAI = ({ onClose }) => {
 
     return () => {
       isMountedRef.current = false;
-      cancelActiveRequest();                      // cancel any in-flight Groq call
-      clearInterval(typingTimerRef.current);      // stop any active text reveal
+      cancelActiveRequest();
     };
   }, []);
 
@@ -151,10 +144,10 @@ const CoinDashAI = ({ onClose }) => {
     };
   }, [isMounted, onClose]);
 
-  // Auto-scroll to bottom on new messages or loading change
+  // Auto-scroll to bottom on new messages, loading, or streaming
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+  }, [messages, isLoading, isStreaming]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -166,47 +159,29 @@ const CoinDashAI = ({ onClose }) => {
   }, [inputValue]);
 
 
-  // ── Text reveal animation ───────────────────────────────────────────────────
-  /**
-   * Animates `fullText` into the message with id `msgId` one character at a
-   * time. When complete, marks isTyping=false so the cursor disappears.
-   */
-  const animateTyping = useCallback((msgId, fullText) => {
-    clearInterval(typingTimerRef.current);
-    let charIndex = 0;
+  // ── Stop stream ─────────────────────────────────────────────────────────────
+  const handleStop = useCallback(() => {
+    cancelActiveRequest();
+    cancelStreamRef.current = null;
 
-    typingTimerRef.current = setInterval(() => {
-      if (!isMountedRef.current) {
-        clearInterval(typingTimerRef.current);
-        return;
-      }
-
-      charIndex += 1;
-      const slice = fullText.slice(0, charIndex);
-      const done  = charIndex >= fullText.length;
-
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === msgId
-            ? { ...m, displayText: slice, isTyping: !done }
-            : m
-        )
-      );
-
-      if (done) clearInterval(typingTimerRef.current);
-    }, TYPING_SPEED_MS);
+    // Mark the active streaming message as complete
+    setMessages((prev) =>
+      prev.map((m) => (m.isStreaming ? { ...m, isStreaming: false } : m))
+    );
+    setIsStreaming(false);
+    setIsLoading(false);
   }, []);
 
 
-  // ── Send message ────────────────────────────────────────────────────────────
-  const handleSendMessage = useCallback(async (message = inputValue.trim()) => {
-    if (!message || isLoading) return;
+  // ── Send message (streaming) ────────────────────────────────────────────────
+  const handleSendMessage = useCallback((message = inputValue.trim()) => {
+    if (!message || isLoading || isStreaming) return;
 
-    const userMsgId = Date.now();
     const now = () =>
       new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     // Add user bubble immediately
+    const userMsgId = Date.now();
     setMessages((prev) => [
       ...prev,
       { id: userMsgId, role: 'user', content: message, time: now() },
@@ -214,57 +189,105 @@ const CoinDashAI = ({ onClose }) => {
     setInputValue('');
     setIsLoading(true);
 
-    try {
-      const reply = await sendChatMessage(message);
+    // Prepare the AI message ID for stream updates
+    const aiMsgId = userMsgId + 1;
+    let firstTokenReceived = false;
 
-      // sendChatMessage returns null when the request was intentionally aborted
-      if (reply === null || !isMountedRef.current) return;
+    // Start the SSE stream
+    const cancel = streamChatMessage(message, {
 
-      const aiMsgId = Date.now() + 1;
+      onToken: (token) => {
+        if (!isMountedRef.current) return;
 
-      // Insert bubble with empty displayText + isTyping=true
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: aiMsgId,
-          role: 'assistant',
-          content: reply,
-          displayText: '',
-          isTyping: true,
-          time: now(),
-        },
-      ]);
+        if (!firstTokenReceived) {
+          // First token: insert the AI bubble and switch from skeleton to stream
+          firstTokenReceived = true;
+          setIsLoading(false);
+          setIsStreaming(true);
 
-      // Kick off the character-by-character reveal
-      animateTyping(aiMsgId, reply);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: aiMsgId,
+              role: 'assistant',
+              content: token,
+              displayText: token,
+              isStreaming: true,
+              time: now(),
+            },
+          ]);
+        } else {
+          // Subsequent tokens: append to existing bubble
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === aiMsgId
+                ? {
+                    ...m,
+                    content: m.content + token,
+                    displayText: m.displayText + token,
+                  }
+                : m
+            )
+          );
+        }
+      },
 
-    } catch (err) {
-      if (!isMountedRef.current) return;
+      onDone: () => {
+        if (!isMountedRef.current) return;
 
-      const aiErrId = Date.now() + 1;
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: aiErrId,
-          role: 'assistant',
-          content: err.message || 'Something went wrong. Please try again.',
-          displayText: err.message || 'Something went wrong. Please try again.',
-          isError: true,
-          time: now(),
-        },
-      ]);
-    } finally {
-      if (isMountedRef.current) setIsLoading(false);
-    }
-  }, [inputValue, isLoading, animateTyping]);
+        // Finalise the message — remove cursor
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === aiMsgId ? { ...m, isStreaming: false } : m
+          )
+        );
+        setIsStreaming(false);
+        setIsLoading(false);
+        cancelStreamRef.current = null;
+      },
+
+      onError: (errorMsg) => {
+        if (!isMountedRef.current) return;
+
+        const errText = errorMsg || 'Something went wrong. Please try again.';
+
+        if (firstTokenReceived) {
+          // Error mid-stream: mark message as done (user keeps partial text)
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === aiMsgId ? { ...m, isStreaming: false } : m
+            )
+          );
+        } else {
+          // Error before any tokens: show error bubble
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: aiMsgId,
+              role: 'assistant',
+              content: errText,
+              displayText: errText,
+              isError: true,
+              time: now(),
+            },
+          ]);
+        }
+
+        setIsStreaming(false);
+        setIsLoading(false);
+        cancelStreamRef.current = null;
+      },
+    });
+
+    cancelStreamRef.current = cancel;
+
+  }, [inputValue, isLoading, isStreaming]);
 
 
   // ── Retry last message ──────────────────────────────────────────────────────
   const handleRetry = useCallback(() => {
-    // Find the last user message and re-send it
     const lastUser = [...messages].reverse().find((m) => m.role === 'user');
     if (lastUser) {
-      // Remove the error bubble before retrying
       setMessages((prev) => prev.filter((m) => !m.isError));
       handleSendMessage(lastUser.content);
     }
@@ -285,18 +308,17 @@ const CoinDashAI = ({ onClose }) => {
   }, [handleSendMessage]);
 
 
-  // ── Early return before portal mounts ──────────────────────────────────────
+  // ── Pre-portal guard ────────────────────────────────────────────────────────
   if (!isMounted) return null;
 
-  // Check if the last message is an error (to show Retry button)
-  const lastMsg        = messages[messages.length - 1];
-  const showRetry      = lastMsg?.isError && !isLoading;
-  const hasMessages    = messages.length > 0;
+  const lastMsg     = messages[messages.length - 1];
+  const showRetry   = lastMsg?.isError && !isLoading && !isStreaming;
+  const hasMessages = messages.length > 0;
+  const isBusy      = isLoading || isStreaming;
 
   return ReactDOM.createPortal(
     <AnimatePresence>
       <div className="ai-overlay" onClick={onClose}>
-        {/* Modal */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -305,7 +327,7 @@ const CoinDashAI = ({ onClose }) => {
           className="ai-modal"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* ── Header ─────────────────────────────────────────────────────── */}
+          {/* ── Header ──────────────────────────────────────────────────── */}
           <div className="relative flex items-center justify-between p-6 border-b border-white/10 bg-gradient-to-r from-purple-500/10 via-transparent to-orange-500/10">
             <div className="flex items-center gap-4">
               <div className="relative">
@@ -316,7 +338,9 @@ const CoinDashAI = ({ onClose }) => {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">CoinDash AI</h2>
-                <p className="text-sm text-slate-400">Your premium crypto assistant</p>
+                <p className="text-sm text-slate-400">
+                  {isStreaming ? 'Responding...' : 'Your premium crypto assistant'}
+                </p>
               </div>
             </div>
 
@@ -329,13 +353,13 @@ const CoinDashAI = ({ onClose }) => {
             </button>
           </div>
 
-          {/* ── Content ────────────────────────────────────────────────────── */}
+          {/* ── Content ─────────────────────────────────────────────────── */}
           <div className="flex-1 flex flex-col h-[calc(100%-140px)]">
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
               {!hasMessages ? (
-                /* ── Empty state / Suggested prompts ──────────────────────── */
+                /* ── Empty state ──────────────────────────────────────────── */
                 <div className="flex flex-col items-center justify-center h-full text-center">
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-orange-500/20 flex items-center justify-center mb-6">
                     <FiMessageSquare className="w-8 h-8 text-purple-400" />
@@ -350,7 +374,7 @@ const CoinDashAI = ({ onClose }) => {
                       <button
                         key={i}
                         onClick={() => handleSuggestedPrompt(prompt)}
-                        disabled={isLoading}
+                        disabled={isBusy}
                         className="suggested-prompt p-4 text-left bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all duration-200 group disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <p className="text-sm text-slate-300 group-hover:text-white leading-relaxed">
@@ -367,10 +391,10 @@ const CoinDashAI = ({ onClose }) => {
                     <MessageBubble key={message.id} message={message} />
                   ))}
 
-                  {/* Loading skeleton — only shown before the AI bubble appears */}
+                  {/* Loading skeleton — before first token arrives */}
                   {isLoading && <MessageSkeleton />}
 
-                  {/* Retry button when last message is an error */}
+                  {/* Retry on error */}
                   {showRetry && (
                     <motion.div
                       initial={{ opacity: 0 }}
@@ -392,7 +416,7 @@ const CoinDashAI = ({ onClose }) => {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* ── Input Area ───────────────────────────────────────────────── */}
+            {/* ── Input Area ────────────────────────────────────────────── */}
             <div className="p-6 border-t border-white/10 bg-slate-900/50">
               <div className="flex gap-3">
                 <div className="flex-1 relative">
@@ -405,24 +429,36 @@ const CoinDashAI = ({ onClose }) => {
                     placeholder="Ask about your portfolio, crypto trends, or anything else..."
                     className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-purple-400/60 focus:ring-2 focus:ring-purple-400/20 resize-none min-h-[44px] max-h-[120px] transition-all"
                     rows={1}
-                    disabled={isLoading}
+                    disabled={isBusy}
                     aria-label="Chat message input"
                   />
                 </div>
 
-                <button
-                  id="ai-chat-send"
-                  onClick={() => handleSendMessage()}
-                  disabled={!inputValue.trim() || isLoading}
-                  aria-label="Send message"
-                  className="px-4 py-3 bg-gradient-to-r from-purple-500 to-orange-500 hover:from-purple-600 hover:to-orange-600 disabled:from-slate-600 disabled:to-slate-700 rounded-2xl text-white font-medium transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 flex items-center gap-2 shrink-0"
-                >
-                  <IoSend className="w-4 h-4" />
-                  <span className="hidden sm:inline">Send</span>
-                </button>
+                {/* Send / Stop button */}
+                {isStreaming ? (
+                  <button
+                    id="ai-chat-stop"
+                    onClick={handleStop}
+                    aria-label="Stop streaming"
+                    className="px-4 py-3 bg-red-500/80 hover:bg-red-500 rounded-2xl text-white font-medium transition-all duration-200 flex items-center gap-2 shrink-0"
+                  >
+                    <IoStop className="w-4 h-4" />
+                    <span className="hidden sm:inline">Stop</span>
+                  </button>
+                ) : (
+                  <button
+                    id="ai-chat-send"
+                    onClick={() => handleSendMessage()}
+                    disabled={!inputValue.trim() || isLoading}
+                    aria-label="Send message"
+                    className="px-4 py-3 bg-gradient-to-r from-purple-500 to-orange-500 hover:from-purple-600 hover:to-orange-600 disabled:from-slate-600 disabled:to-slate-700 rounded-2xl text-white font-medium transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 flex items-center gap-2 shrink-0"
+                  >
+                    <IoSend className="w-4 h-4" />
+                    <span className="hidden sm:inline">Send</span>
+                  </button>
+                )}
               </div>
 
-              {/* Disclaimer */}
               <p className="text-xs text-slate-500 mt-3 text-center select-none">
                 CoinDash AI is not a financial advisor. Always do your own research.
               </p>

@@ -10,18 +10,21 @@ Production-grade Groq integration with:
     - Timeout handling via httpx's built-in deadline propagation
     - Response sanitisation to strip markdown artefacts
     - Greeting fast-path that bypasses the LLM entirely
+    - SSE token streaming for ChatGPT-style real-time output
 
 Architecture:
-    router.py  →  service.chat()  →  AIService.generate_response()  →  Groq API
-                                          ↕
-                                   _sanitize_reply()
+    Non-streaming:  router.py  →  service.chat()             →  AIService.generate_response()    →  Groq API
+    Streaming:      router.py  →  service.chat_stream()       →  AIService.generate_stream()      →  Groq API (stream=True)
+                                                                      ↕
+                                                               _sanitize_token()
 """
 
 from __future__ import annotations
 
+import json
 import re
 import logging
-from typing import Optional
+from typing import AsyncIterator, Optional
 
 from groq import AsyncGroq, APITimeoutError, APIConnectionError, APIStatusError
 
@@ -95,6 +98,28 @@ def _sanitize_reply(text: str) -> str:
     return text.strip()
 
 
+def _sanitize_token(token: str) -> str:
+    """
+    Lightweight per-token sanitisation for streaming.
+    Only strips inline markdown markers; does not collapse whitespace
+    (that would break mid-sentence spaces).
+    """
+    if not token:
+        return ""
+    token = token.replace("**", "")
+    token = token.replace("`", "")
+    token = token.replace("|", "")
+    return token
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SSE formatting helpers
+# ─────────────────────────────────────────────────────────────────────────────
+def _sse_event(event: str, data: dict) -> str:
+    """Format a single SSE frame: event:<name>\\ndata:<json>\\n\\n"""
+    return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # AIService — singleton Groq client wrapper
 # ─────────────────────────────────────────────────────────────────────────────
@@ -127,6 +152,7 @@ class AIService:
             )
         return cls._client
 
+    # ── Non-streaming completion ──────────────────────────────────────────
     @classmethod
     async def generate_response(cls, message: str) -> str:
         """
@@ -159,7 +185,6 @@ class AIService:
                 top_p=1.0,
             )
 
-            # Extract reply — guard against empty / malformed responses
             raw_reply = (
                 completion.choices[0].message.content
                 if completion.choices
@@ -189,7 +214,6 @@ class AIService:
                 exc.status_code,
                 exc.body,
             )
-            # Surface rate-limit info so the caller understands the failure
             if exc.status_code == 429:
                 return (
                     "I'm receiving too many requests right now. "
@@ -201,13 +225,84 @@ class AIService:
             logger.exception("Unexpected error during Groq call: %s", exc)
             return _FALLBACK_REPLY
 
+    # ── Streaming completion ──────────────────────────────────────────────
+    @classmethod
+    async def generate_stream(cls, message: str) -> AsyncIterator[str]:
+        """
+        Async generator that yields SSE-formatted events for real-time
+        token streaming.
+
+        Event types:
+            event: token    — data: {"token": "..."}    (one per chunk)
+            event: done     — data: {}                  (stream finished)
+            event: error    — data: {"message": "..."}  (on any failure)
+
+        The generator never raises — all errors are converted to SSE error
+        events so the HTTP response stays 200 and the frontend can display
+        the error inline in the chat bubble.
+        """
+        client = cls._get_client()
+
+        try:
+            logger.debug(
+                "Groq STREAM request: model=%s, temp=%.1f, max_tokens=%d",
+                settings.ai_model,
+                settings.ai_temperature,
+                settings.ai_max_tokens,
+            )
+
+            stream = await client.chat.completions.create(
+                model=settings.ai_model,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": message},
+                ],
+                temperature=settings.ai_temperature,
+                max_tokens=settings.ai_max_tokens,
+                top_p=1.0,
+                stream=True,
+            )
+
+            token_count = 0
+            async for chunk in stream:
+                delta = chunk.choices[0].delta if chunk.choices else None
+                if delta and delta.content:
+                    token = _sanitize_token(delta.content)
+                    if token:
+                        token_count += 1
+                        yield _sse_event("token", {"token": token})
+
+            logger.info("Groq stream complete (%d tokens)", token_count)
+            yield _sse_event("done", {})
+
+        except APITimeoutError:
+            logger.error("Groq stream timed out after %ds", settings.ai_timeout_seconds)
+            yield _sse_event("error", {"message": _FALLBACK_REPLY})
+
+        except APIConnectionError as exc:
+            logger.error("Groq stream connection failed: %s", exc)
+            yield _sse_event("error", {"message": _FALLBACK_REPLY})
+
+        except APIStatusError as exc:
+            logger.error("Groq stream API error: status=%d body=%s", exc.status_code, exc.body)
+            if exc.status_code == 429:
+                yield _sse_event("error", {
+                    "message": "I'm receiving too many requests right now. Please wait a moment and try again."
+                })
+            else:
+                yield _sse_event("error", {"message": _FALLBACK_REPLY})
+
+        except Exception as exc:
+            logger.exception("Unexpected error during Groq stream: %s", exc)
+            yield _sse_event("error", {"message": _FALLBACK_REPLY})
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Public API (called by router.py)
 # ─────────────────────────────────────────────────────────────────────────────
 async def chat(message: str) -> str:
     """
-    Process a user message and return the AI reply.
+    Process a user message and return the AI reply (non-streaming).
 
     Decision tree:
         1. Greeting regex → instant canned reply (0 ms)
@@ -216,15 +311,37 @@ async def chat(message: str) -> str:
     """
     logger.info("AI chat request received (%d chars)", len(message))
 
-    # ── Fast-path: greetings bypass the LLM entirely ──────────────────────
     if _GREETING_RE.search(message.strip()):
         logger.debug("Greeting detected — returning canned reply")
         return _GREETING_REPLY
 
-    # ── Guard: missing API key ────────────────────────────────────────────
     if not settings.groq_api_key:
         logger.warning("GROQ_API_KEY is empty — AI chat disabled")
         return _NO_KEY_REPLY
 
-    # ── Groq LLM call ────────────────────────────────────────────────────
     return await AIService.generate_response(message)
+
+
+async def chat_stream(message: str) -> AsyncIterator[str]:
+    """
+    Process a user message and yield SSE events (streaming).
+
+    Same decision tree as chat(), but greeting and guard responses are
+    emitted as SSE token + done events for uniform frontend handling.
+    """
+    logger.info("AI stream request received (%d chars)", len(message))
+
+    if _GREETING_RE.search(message.strip()):
+        logger.debug("Greeting detected — streaming canned reply")
+        yield _sse_event("token", {"token": _GREETING_REPLY})
+        yield _sse_event("done", {})
+        return
+
+    if not settings.groq_api_key:
+        logger.warning("GROQ_API_KEY is empty — AI chat disabled")
+        yield _sse_event("token", {"token": _NO_KEY_REPLY})
+        yield _sse_event("done", {})
+        return
+
+    async for event in AIService.generate_stream(message):
+        yield event
