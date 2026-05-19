@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.core.config import settings
 from src.core.logging import get_logger, setup_logging
 from src.db.redis import close_redis, get_redis, init_redis
+from src.modules.ai.router import router as ai_router
 from src.modules.alerts.router import router as alerts_router
 from src.modules.auth.router import router as auth_router
 from src.modules.coins.router import router as coins_router
@@ -125,6 +126,7 @@ def create_app() -> FastAPI:
 
     # ── v1 Routers ────────────────────────────────────────────────────────────
     API_PREFIX = "/api/v1"
+    app.include_router(ai_router,        prefix=API_PREFIX)
     app.include_router(auth_router,      prefix=API_PREFIX)
     app.include_router(coins_router,     prefix=API_PREFIX)
     app.include_router(news_router,      prefix=API_PREFIX)

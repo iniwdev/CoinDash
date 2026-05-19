@@ -87,7 +87,7 @@ const CoinDashAI = ({ onClose }) => {
     try {
       console.log("Sending request...");
 
-      const response = await fetch("http://localhost:5000/api/ai/chat", {
+      const response = await fetch("/api/v1/ai/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
