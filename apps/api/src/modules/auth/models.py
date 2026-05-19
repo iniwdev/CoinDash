@@ -11,6 +11,7 @@ from src.db.base import Base, TimestampMixin, UUIDMixin
 if TYPE_CHECKING:
     from src.modules.watchlist.models import Watchlist
     from src.modules.alerts.models import Alert
+    from src.modules.portfolio.models import Portfolio
 
 
 class User(Base, UUIDMixin, TimestampMixin):
@@ -38,6 +39,9 @@ class User(Base, UUIDMixin, TimestampMixin):
     )
     alerts: Mapped[list["Alert"]] = relationship(
         "Alert", back_populates="user", cascade="all, delete-orphan"
+    )
+    portfolios: Mapped[list["Portfolio"]] = relationship(
+        "Portfolio", back_populates="user", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:

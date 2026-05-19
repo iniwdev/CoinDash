@@ -9,6 +9,7 @@ from src.db.base import Base
 from src.modules.auth.models import User, RefreshToken  # noqa: F401
 from src.modules.watchlist.models import Watchlist, WatchlistCoin  # noqa: F401
 from src.modules.alerts.models import Alert  # noqa: F401
+from src.modules.portfolio.models import Portfolio, Transaction, HoldingsCache  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:

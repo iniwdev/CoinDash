@@ -10,6 +10,7 @@ from src.core.config import settings
 from src.modules.coins.service import get_markets, get_global_data
 from src.modules.watchlist.service import list_watchlists
 from src.modules.news.service import get_news
+from src.modules.portfolio.service import ensure_default_portfolio, get_holdings
 
 logger = logging.getLogger(__name__)
 
@@ -101,11 +102,29 @@ async def build_prompt(user_id: Optional[uuid.UUID], message: str, db: AsyncSess
             logger.error(f"Error fetching news for AI context: {e}")
             return []
 
+    # 4. Fetch Portfolio
+    async def fetch_portfolio_text() -> str:
+        if not user_id:
+            return "No portfolio linked."
+        try:
+            default_pf = await ensure_default_portfolio(db, user_id)
+            holdings = await get_holdings(db, default_pf.id, user_id)
+            if not holdings:
+                return "Portfolio is empty."
+            lines = []
+            for h in holdings:
+                lines.append(f"{h['quantity']} {h['coin_symbol']} (Value: ${h['current_value']}, PnL: {h['unrealized_pnl_pct']}%)")
+            return ", ".join(lines)
+        except Exception as e:
+            logger.error(f"Error fetching portfolio for AI context: {e}")
+            return "Portfolio data unavailable."
+
     # Run all context fetchers concurrently
-    market, watchlist_coins, news_summaries = await asyncio.gather(
+    market, watchlist_coins, news_summaries, portfolio_text = await asyncio.gather(
         fetch_market(),
         fetch_watchlist(),
-        fetch_news()
+        fetch_news(),
+        fetch_portfolio_text(),
     )
 
     # Assemble Context Block
@@ -119,7 +138,7 @@ async def build_prompt(user_id: Optional[uuid.UUID], message: str, db: AsyncSess
     • Trending: {', '.join(market['trending']) if market['trending'] else 'unavailable'}
 
     Your watchlist: {', '.join(watchlist_coins) if watchlist_coins else 'none'}
-    Your portfolio holdings: (portfolio integration coming in Phase 4.7)
+    Your portfolio holdings: {portfolio_text}
 
     Latest crypto news headlines:
     {chr(10).join(f"• {n}" for n in news_summaries) if news_summaries else 'unavailable'}
