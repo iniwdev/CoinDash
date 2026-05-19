@@ -6,7 +6,7 @@ import { useUIStore } from "@/store/uiStore";
 import { useAi } from "@/context/AiContext";
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, RadialBarChart, RadialBar, Legend, ReferenceDot } from 'recharts';
 import { useAuthStore } from '@/store/authStore';
-import PortfolioDashboard from '../components/PortfolioDashboard';
+import PortfolioWorkspace from '../components/PortfolioWorkspace';
 import './Portfolio.css';
 
 // Animation Variants
@@ -305,12 +305,11 @@ const Portfolio = () => {
   const timeFilters = ['24H', '1W', '1M', '3M', '6M', '1Y', 'ALL'];
   const activeFilter = '24H';
 
-  // If authenticated, show the real dashboard
   if (authStatus === 'authenticated') {
     return (
       <div className="portfolio-page">
-        <Layout>
-          <PortfolioDashboard />
+        <Layout fluid>
+          <PortfolioWorkspace />
         </Layout>
       </div>
     );

@@ -87,7 +87,7 @@ const Navbar = React.memo(() => {
 
   return (
     <nav className={`sticky top-0 z-50 w-full border-b border-white/10 backdrop-blur-xl transition-shadow duration-300 ${scrolled ? 'shadow-[0_18px_50px_-24px_rgba(0,0,0,0.75)] bg-slate-950/90' : 'bg-slate-950/95'}`}>
-      <div className="max-w-[1240px] mx-auto px-5 py-3">
+      <div className="max-w-[1920px] 2xl:max-w-[2560px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-20 py-3">
         <div className="flex items-center justify-between gap-4 min-h-[64px]">
           <div className="flex items-center gap-3">
             <div className="rounded-2xl bg-white/10 px-3 py-2 backdrop-blur-sm">

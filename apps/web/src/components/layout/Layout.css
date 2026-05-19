@@ -4,10 +4,14 @@
   flex-direction: column;
 }
 
+/*
+  Default container: used by all standard pages (Coins, Watchlist, Home, etc.).
+  Keeps a comfortable reading width with consistent horizontal padding.
+*/
 .layout-container {
   flex: 1;
   width: 100%;
-  max-width: 1120px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 2.5rem 1rem;
 }
@@ -22,4 +26,17 @@
   .layout-container {
     padding: 2.5rem 2rem;
   }
+}
+
+/*
+  Fluid variant: used by full-width dashboard pages (Portfolio Workspace).
+  Removes max-width and all padding — the child component owns its own
+  width constraints and padding system.
+*/
+.layout-container--fluid {
+  flex: 1;
+  width: 100%;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }

@@ -13,6 +13,7 @@ from src.modules.coins.router import router as coins_router
 from src.modules.news.router import router as news_router
 from src.modules.portfolio.router import router as portfolio_router
 from src.modules.watchlist.router import router as watchlist_router
+from src.modules.intelligence.router import router as intelligence_router
 
 # ── Configure logging before anything else ────────────────────────────────────
 setup_logging()
@@ -133,6 +134,7 @@ def create_app() -> FastAPI:
     app.include_router(portfolio_router, prefix=API_PREFIX)
     app.include_router(alerts_router,    prefix=API_PREFIX)
     app.include_router(watchlist_router, prefix=API_PREFIX)
+    app.include_router(intelligence_router, prefix=API_PREFIX)
 
     return app
 
