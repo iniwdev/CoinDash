@@ -10,6 +10,9 @@ from src.core.security import decode_token
 from src.db.session import get_db
 from src.modules.auth import service
 from src.modules.auth.models import User
+from fastapi.security import OAuth2PasswordBearer
+
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
 
 async def get_current_user(
@@ -50,3 +53,23 @@ async def get_current_active_user(
 
 # Type hints for easy usage in routes
 CurrentUser = Annotated[User, Depends(get_current_active_user)]
+
+async def get_optional_current_user(
+    token: Annotated[str | None, Depends(oauth2_scheme_optional)],
+    db: Annotated[AsyncSession, Depends(get_db)]
+) -> User | None:
+    """
+    Dependency to return the current user if a valid token is provided, otherwise None.
+    """
+    if not token:
+        return None
+    try:
+        payload = decode_token(token)
+        user_id: str = payload.get("sub")
+        if not user_id or payload.get("type") != "access":
+            return None
+        return await service.get_user_by_id(db, user_id)
+    except JWTError:
+        return None
+
+OptionalCurrentUser = Annotated[User | None, Depends(get_optional_current_user)]

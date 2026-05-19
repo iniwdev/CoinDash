@@ -14,12 +14,15 @@ Both follow the same patterns as other CoinDash routers:
 
 from __future__ import annotations
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import StreamingResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.logging import get_logger
 from src.modules.ai import service
 from src.modules.ai.schemas import ChatRequest, ChatResponse
+from src.modules.auth.dependencies import OptionalCurrentUser
+from src.db.session import get_db
 
 logger = get_logger(__name__)
 
@@ -35,12 +38,13 @@ router = APIRouter(prefix="/ai", tags=["ai"])
                 "a conversational reply about crypto markets, portfolio "
                 "insights, and trading strategies.",
 )
-async def chat(body: ChatRequest) -> ChatResponse:
+async def chat(body: ChatRequest, current_user: OptionalCurrentUser, db: AsyncSession = Depends(get_db)) -> ChatResponse:
     """
     Non-streaming endpoint. Returns a complete JSON response.
     Kept for backward compatibility and simpler clients.
     """
-    reply = await service.chat(body.message)
+    user_id = current_user.id if current_user else None
+    reply = await service.chat(user_id, body.message, db)
     return ChatResponse(reply=reply)
 
 
@@ -58,7 +62,7 @@ async def chat(body: ChatRequest) -> ChatResponse:
         }
     },
 )
-async def chat_stream(body: ChatRequest) -> StreamingResponse:
+async def chat_stream(body: ChatRequest, current_user: OptionalCurrentUser, db: AsyncSession = Depends(get_db)) -> StreamingResponse:
     """
     Streaming endpoint. Returns a text/event-stream response.
 
@@ -71,8 +75,9 @@ async def chat_stream(body: ChatRequest) -> StreamingResponse:
         X-Accel-Buffering: no         — disables nginx buffering
         Connection: keep-alive        — keeps the stream open
     """
+    user_id = current_user.id if current_user else None
     return StreamingResponse(
-        service.chat_stream(body.message),
+        service.chat_stream(user_id, body.message, db),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

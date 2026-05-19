@@ -24,12 +24,15 @@ from __future__ import annotations
 import json
 import re
 import logging
+import uuid
 from typing import AsyncIterator, Optional
 
+from sqlalchemy.ext.asyncio import AsyncSession
 from groq import AsyncGroq, APITimeoutError, APIConnectionError, APIStatusError
 
 from src.core.config import settings
 from src.core.exceptions import ExternalAPIError
+from src.modules.ai.prompt_manager import build_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -37,25 +40,7 @@ logger = logging.getLogger(__name__)
 # ─────────────────────────────────────────────────────────────────────────────
 # Prompt engineering
 # ─────────────────────────────────────────────────────────────────────────────
-SYSTEM_PROMPT: str = """
-You are CoinDash AI, a premium crypto market assistant, portfolio helper, and fintech educator. Your tone is modern, intelligent, and highly professional—a blend of Bloomberg's analytical sharpness, Binance Academy's educational clarity, and ChatGPT's conversational helpfulness.
-
-CORE DIRECTIVES:
-1. EDUCATE WITH CLARITY: Explain complex crypto concepts (like DeFi, staking, Layer 2s, or Bitcoin dominance) simply, without overwhelming jargon. Be beginner-friendly but never condescending.
-2. NO FINANCIAL ADVICE: You are NOT a financial advisor. NEVER guarantee returns, predict exact prices, or tell users what to buy or sell. Use phrases like "Historically...", "Market analysts suggest...", or "Some investors consider...".
-3. HIGHLIGHT RISK & VOLATILITY: Always contextualize crypto markets with their inherent volatility. Emphasize risk management principles like diversification and thorough research (DYOR).
-4. DATA-DRIVEN & CONCISE: Keep answers tight, structured, and insightful. Avoid unnecessary fluff or overly long preambles.
-5. NO HALLUCINATIONS: If you lack real-time data or cannot verify current market conditions, state so clearly. Do not invent metrics, prices, or events.
-
-FORMATTING RULES:
-- Use plain text only.
-- NEVER use markdown tables, headings (###), bolding (**), or bullet points.
-- Keep responses conversational, fluid, and easy to read in a small chat window.
-- Do not cut off mid-thought; continue until your explanation is complete.
-- Do not generate long articles.
-
-Always behave like a real, intelligent, and safe AI chat assistant.
-""".strip()
+# System prompt has been moved to prompt_manager.py
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -154,7 +139,7 @@ class AIService:
 
     # ── Non-streaming completion ──────────────────────────────────────────
     @classmethod
-    async def generate_response(cls, message: str) -> str:
+    async def generate_response(cls, user_id: Optional[uuid.UUID], message: str, db: AsyncSession) -> str:
         """
         Send a chat completion request to Groq and return the sanitised reply.
 
@@ -174,12 +159,11 @@ class AIService:
                 settings.ai_max_tokens,
             )
 
+            messages = await build_prompt(user_id, message, db)
+
             completion = await client.chat.completions.create(
                 model=settings.ai_model,
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": message},
-                ],
+                messages=messages,
                 temperature=settings.ai_temperature,
                 max_tokens=settings.ai_max_tokens,
                 top_p=1.0,
@@ -227,7 +211,7 @@ class AIService:
 
     # ── Streaming completion ──────────────────────────────────────────────
     @classmethod
-    async def generate_stream(cls, message: str) -> AsyncIterator[str]:
+    async def generate_stream(cls, user_id: Optional[uuid.UUID], message: str, db: AsyncSession) -> AsyncIterator[str]:
         """
         Async generator that yields SSE-formatted events for real-time
         token streaming.
@@ -251,12 +235,11 @@ class AIService:
                 settings.ai_max_tokens,
             )
 
+            messages = await build_prompt(user_id, message, db)
+
             stream = await client.chat.completions.create(
                 model=settings.ai_model,
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": message},
-                ],
+                messages=messages,
                 temperature=settings.ai_temperature,
                 max_tokens=settings.ai_max_tokens,
                 top_p=1.0,
@@ -300,7 +283,7 @@ class AIService:
 # ─────────────────────────────────────────────────────────────────────────────
 # Public API (called by router.py)
 # ─────────────────────────────────────────────────────────────────────────────
-async def chat(message: str) -> str:
+async def chat(user_id: Optional[uuid.UUID], message: str, db: AsyncSession) -> str:
     """
     Process a user message and return the AI reply (non-streaming).
 
@@ -319,10 +302,10 @@ async def chat(message: str) -> str:
         logger.warning("GROQ_API_KEY is empty — AI chat disabled")
         return _NO_KEY_REPLY
 
-    return await AIService.generate_response(message)
+    return await AIService.generate_response(user_id, message, db)
 
 
-async def chat_stream(message: str) -> AsyncIterator[str]:
+async def chat_stream(user_id: Optional[uuid.UUID], message: str, db: AsyncSession) -> AsyncIterator[str]:
     """
     Process a user message and yield SSE events (streaming).
 
@@ -343,5 +326,5 @@ async def chat_stream(message: str) -> AsyncIterator[str]:
         yield _sse_event("done", {})
         return
 
-    async for event in AIService.generate_stream(message):
+    async for event in AIService.generate_stream(user_id, message, db):
         yield event
