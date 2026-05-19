@@ -82,20 +82,18 @@ export default function PortfolioWorkspace() {
         </div>
 
         {/* ── 12-COLUMN WORKSPACE GRID ──────────────────────────────────
-            Left canvas: 9 cols on xl, 8 on lg.
-            Right rail:  3 cols on xl, 4 on lg.
-            On < lg: stacks vertically (right rail below left).
+            9 cols LEFT + 3 cols RIGHT on all lg+ screens.
+            The 9/3 split gives the canvas 75% and rail 25%.
+            items-start prevents the right rail from stretching to canvas height.
         ──────────────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 items-start">
 
-          {/* ── LEFT MAIN CANVAS ──────────────────────────────────────── */}
-          {/* 
-            Key fixes:
-            - NO h-full here: left canvas grows with its content naturally.
-            - Space-y for rhythm; no flex flex-col (would collapse children).
-            - min-w-0 prevents grid child from overflowing its column.
+          {/* ── LEFT MAIN CANVAS (9 cols) ─────────────────────────────────
+            min-w-0: prevents grid child from blowing out its column track.
+            overflow-hidden: clips any children that momentarily overflow
+            during animation without creating a page-level scrollbar.
           */}
-          <div className="lg:col-span-8 xl:col-span-9 min-w-0 space-y-6 xl:space-y-8">
+          <div className="lg:col-span-9 min-w-0 overflow-hidden space-y-6 xl:space-y-8">
 
             {/* 1. Intelligence KPI Cards */}
             <motion.div
@@ -130,31 +128,24 @@ export default function PortfolioWorkspace() {
 
           </div>
 
-          {/* ── RIGHT STICKY INTELLIGENCE RAIL ────────────────────────── */}
-          {/*
-            Key fixes:
-            - The sticky wrapper uses `top-[72px]` to clear the fixed navbar height
-              instead of `top-6` which caused overlap.
-            - `max-h-[calc(100vh-88px)]` gives it a bounded scroll container that
-              doesn't push beyond the viewport.
-            - `overflow-y-auto` only on the inner scroll container, NOT the grid cell.
-            - `flex-shrink-0` on the grid cell prevents it from collapsing.
+          {/* ── RIGHT STICKY INTELLIGENCE RAIL (3 cols) ───────────────
+            sticky top clears the navbar (64px min-h + 8px border ≈ 73px).
+            h-[calc(100vh-73px)] gives the scroll region the exact remaining
+            viewport height — no content clips and no double-scrollbar.
+            overflow-y-auto is ONLY on this inner div, not the grid cell.
           */}
-          <div className="lg:col-span-4 xl:col-span-3 flex-shrink-0">
-            <div className="sticky top-[72px]">
-              <div
-                className="flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-88px)] pb-8"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              >
-                {/* AI Insight Feed */}
-                <AiInsightFeed />
-
-                {/* Market Snapshot */}
-                <MarketSnapshot />
-
-                {/* Activity Timeline */}
-                <ActivityTimeline />
-              </div>
+          <div className="lg:col-span-3">
+            <div
+              className="sticky top-[73px] flex flex-col gap-4 overflow-y-auto pb-8"
+              style={{
+                height: 'calc(100vh - 73px)',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+              }}
+            >
+              <AiInsightFeed />
+              <MarketSnapshot />
+              <ActivityTimeline />
             </div>
           </div>
 
