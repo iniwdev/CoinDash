@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     coinstats_api_key: str = ""
 
+    # AI Configuration
+    ai_model: str = "llama-3.3-70b-versatile"
+    ai_temperature: float = 0.3
+    ai_max_tokens: int = 1800
+    ai_timeout_seconds: int = 30
+
     # CORS
     cors_origins: str = "http://localhost:5173,http://localhost:5174"
 
