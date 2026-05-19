@@ -128,17 +128,19 @@ export default function PortfolioWorkspace() {
 
           </div>
 
-          {/* ── RIGHT STICKY INTELLIGENCE RAIL (3 cols) ───────────────
-            sticky top clears the navbar (64px min-h + 8px border ≈ 73px).
-            h-[calc(100vh-73px)] gives the scroll region the exact remaining
-            viewport height — no content clips and no double-scrollbar.
-            overflow-y-auto is ONLY on this inner div, not the grid cell.
+          {/* ── RIGHT INTELLIGENCE RAIL (3 cols) ──────────────────────
+              self-start sticky: pins the rail at the top while scrolling.
+              Inner div: max-h bounded to viewport so if rail content is
+              taller than the visible area, it scrolls internally (hidden).
+              If shorter, no scroll appears — content just sits naturally.
+              The grid track (sized by the taller left canvas) ensures the
+              sticky element never pokes below the left section's last line.
           */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-3 self-start sticky top-[73px]">
             <div
-              className="sticky top-[73px] flex flex-col gap-4 overflow-y-auto pb-8"
+              className="flex flex-col gap-4 overflow-y-auto"
               style={{
-                height: 'calc(100vh - 73px)',
+                maxHeight: 'calc(100vh - 73px)',
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
               }}
