@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { intelligenceService } from '@/services/intelligenceService';
+import { useAnimatedCounter } from '@/hooks/useAnimatedCounter';
 
 const FALLBACK_DATA = {
   fearGreed: 68,
@@ -37,6 +38,9 @@ export default function MarketSnapshot() {
     return () => clearInterval(interval);
   }, []);
 
+  // Always call hooks before early returns
+  const animFearGreed = useAnimatedCounter(data?.fearGreed ?? 0, 1400, 0);
+
   // Render skeleton while loading
   if (isLoading) {
     return (
@@ -44,16 +48,16 @@ export default function MarketSnapshot() {
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.5 }}
-        className="rounded-[2rem] bg-[#0A0E17]/60 backdrop-blur-3xl border border-white/[0.03] p-6 animate-pulse"
+        className="rounded-[2rem] bg-[#0A0E17]/60 backdrop-blur-3xl border border-white/[0.03] p-6"
       >
-        <div className="h-4 w-28 bg-white/10 rounded mb-6" />
+        <div className="shimmer h-4 w-28 rounded mb-6" />
         <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="h-20 bg-white/5 rounded-2xl" />
-          <div className="h-20 bg-white/5 rounded-2xl" />
+          <div className="shimmer h-20 rounded-2xl" />
+          <div className="shimmer h-20 rounded-2xl" />
         </div>
         <div className="space-y-2">
-          <div className="h-14 bg-white/5 rounded-xl" />
-          <div className="h-14 bg-white/5 rounded-xl" />
+          <div className="shimmer h-14 rounded-xl" />
+          <div className="shimmer h-14 rounded-xl" />
         </div>
       </motion.div>
     );
@@ -84,13 +88,21 @@ export default function MarketSnapshot() {
         <div className="p-4 bg-white/[0.01] border border-white/[0.03] rounded-2xl group hover:bg-white/[0.02] transition-colors">
           <p className="text-[10px] text-[#64748B] font-bold mb-1 uppercase tracking-widest">Fear & Greed</p>
           <div className="flex items-baseline gap-2">
-            <p className="text-[20px] font-bold text-[#10B981] drop-shadow-[0_0_10px_rgba(16,185,129,0.4)]">
-              {data.fearGreed}
-            </p>
+            <motion.p
+              key={animFearGreed}
+              className="text-[20px] font-bold text-[#10B981] drop-shadow-[0_0_10px_rgba(16,185,129,0.4)]"
+            >
+              {animFearGreed}
+            </motion.p>
             <span className="text-[10px] text-[#10B981]/80 font-bold tracking-widest uppercase">{data.fearGreedLabel}</span>
           </div>
           <div className="w-full h-1 bg-black/40 rounded-full mt-3 overflow-hidden shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
-            <div className="h-full bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 transition-all duration-1000" style={{ width: `${data.fearGreed}%` }}></div>
+            <motion.div
+              className="h-full bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500"
+              initial={{ width: 0 }}
+              animate={{ width: `${data.fearGreed}%` }}
+              transition={{ duration: 1.4, ease: 'easeOut', delay: 0.3 }}
+            />
           </div>
         </div>
 
@@ -141,9 +153,16 @@ export default function MarketSnapshot() {
         </span>
         <div className="flex items-center gap-2 flex-wrap">
           {data.trending.map((coin, i) => (
-            <span key={i} className="text-[10px] font-bold text-white bg-white/5 border border-white/10 px-2 py-0.5 rounded-md hover:bg-white/10 transition-colors cursor-pointer">
+            <motion.span
+              key={coin}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.1, type: 'spring', stiffness: 300 }}
+              whileHover={{ scale: 1.1, boxShadow: '0 0 12px rgba(251,146,60,0.4)' }}
+              className="text-[10px] font-bold text-white bg-white/5 border border-white/10 px-2 py-0.5 rounded-md cursor-pointer"
+            >
               {coin}
-            </span>
+            </motion.span>
           ))}
         </div>
       </div>

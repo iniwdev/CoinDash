@@ -10,6 +10,7 @@ import Heatmap from "@/features/market-data/components/Heatmap";
 import Pagination from "@/components/ui/Pagination";
 import { fetchChartsForCoins } from "@/utils/coingeckoChart";
 import { useCoins } from "@/features/market-data/api/useCoins";
+import apiClient from "@/lib/apiClient";
 import './CoinsPage.css';
 
 const CoinsPage = () => {
@@ -112,10 +113,6 @@ const CoinsPage = () => {
   const toggleFavorite = (coin) => {
     toggleWatchlist(coin);
   };
-
-  useEffect(() => {
-    console.log('Watchlist (CoinsPage):', watchlist);
-  }, [watchlist]);
 
   const filteredExchanges = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();

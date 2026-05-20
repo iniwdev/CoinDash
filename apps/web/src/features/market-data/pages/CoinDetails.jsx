@@ -591,10 +591,6 @@ export default function CoinDetails() {
       const { days } = rangeMap[range];
       const usdData = await fetchComparisonHistory(coinGeckoId, 'usd', days);
 
-      console.log('Chart coinGeckoId:', coinGeckoId, 'route id:', id);
-      console.log('USD RAW', usdData.slice(0, 3));
-      console.log('currentBtcPrice', currentBtcPrice, 'currentEthPrice', currentEthPrice);
-
       const usdSeries = [];
       const btcSeries = [];
       const ethSeries = [];
@@ -637,7 +633,6 @@ export default function CoinDetails() {
 
       transformedData.sort((a, b) => a.timestamp - b.timestamp);
 
-      console.log('TRANSFORMED SAMPLE', transformedData.slice(0, 5));
       setChartData(transformedData);
     } catch (e) {
       console.error('Unable to fetch comparison chart data:', e);

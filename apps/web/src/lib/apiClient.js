@@ -45,7 +45,6 @@ apiClient.interceptors.response.use(
       || url.includes('/auth/logout');
 
     if (error.response?.status === 401 && !originalRequest._retried && !isAuthEndpoint) {
-      console.log(`[apiClient] 401 detected on ${url}, attempting refresh...`);
       originalRequest._retried = true;
 
       // Collapse concurrent 401s into one refresh attempt
@@ -58,8 +57,7 @@ apiClient.interceptors.response.use(
       const newToken = await _refreshPromise;
 
       if (newToken) {
-        console.log(`[apiClient] Refresh successful, retrying ${url}`);
-        // Retry original request with the fresh token
+        // Retry the original request with the fresh token
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return apiClient(originalRequest);
       }

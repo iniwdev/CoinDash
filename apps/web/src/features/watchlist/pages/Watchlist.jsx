@@ -12,12 +12,10 @@ import CoinDrawer from "@/features/watchlist/components/CoinDrawer";
 import WatchlistManager from "@/features/watchlist/components/WatchlistManager";
 import WatchlistExportShare from "@/features/watchlist/components/WatchlistExportShare";
 import { useWatchlistStore } from "@/store/useWatchlistStore";
-import apiClient from "@/lib/apiClient";
+import { useWatchlistQuery } from '@/features/watchlist/api/useWatchlistQuery';
 
 const Watchlist = () => {
   const watchlist = useWatchlistStore((state) => state.watchlist);
-  const [coins, setCoins] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [selectedCoin, setSelectedCoin] = useState(null);
   const [timeRange, setTimeRange] = useState('24h');
   const [searchTerm, setSearchTerm] = useState('');
@@ -25,58 +23,29 @@ const Watchlist = () => {
 
   const coinIds = useMemo(() => (watchlist || []).map((coin) => coin.id), [watchlist]);
 
-  useEffect(() => {
-    setCoins(watchlist);
+  // Use React Query for centralized caching and synchronization
+  const { data: fetchedCoins, isLoading: loading } = useWatchlistQuery(coinIds);
 
-    if (coinIds.length === 0) {
-      setCoins([]);
-      setLoading(false);
-      return;
-    }
-
-    const fetchWatchlistCoins = async () => {
-      try {
-        setLoading(true);
-        const ids = coinIds.join(',');
-        // Route through Vite proxy → FastAPI → CoinGecko (with Redis caching)
-        const response = await apiClient.get('/market/coins/markets', {
-          params: {
-            vs_currency: 'usd',
-            ids,
-            order: 'market_cap_desc',
-            sparkline: true,
-            price_change_percentage: '1h,24h,7d',
-          }
-        });
-        setCoins(Array.isArray(response.data) ? response.data : []);
-      } catch (error) {
-        console.error('Error fetching watchlist coins:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Initial fetch
-    fetchWatchlistCoins();
-
-    // Auto refresh every 30 seconds
-    const interval = setInterval(fetchWatchlistCoins, 30000);
-    return () => clearInterval(interval);
-  }, [coinIds]);
+  // Fallback to local store data while loading to prevent empty flashes,
+  // but use real fetched data once available to ensure accuracy.
+  const coins = useMemo(() => {
+    if (fetchedCoins && fetchedCoins.length > 0) return fetchedCoins;
+    return watchlist || [];
+  }, [fetchedCoins, watchlist]);
 
   const filteredCoins = (coins || []).filter((coin) => {
     const matchesSearch =
-      coin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      coin.symbol.toLowerCase().includes(searchTerm.toLowerCase());
+      (coin.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (coin.symbol || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     if (filterType === 'gainers') {
-      return matchesSearch && coin.price_change_percentage_24h > 0;
+      return matchesSearch && coin.priceChange24h > 0;
     }
     if (filterType === 'losers') {
-      return matchesSearch && coin.price_change_percentage_24h < 0;
+      return matchesSearch && coin.priceChange24h < 0;
     }
     if (filterType === 'high_volume') {
-      return matchesSearch && coin.total_volume > 1000000000;
+      return matchesSearch && coin.volume > 1000000000;
     }
 
     return matchesSearch;

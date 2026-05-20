@@ -100,13 +100,13 @@ const WatchlistTable = ({ coins, loading, onSelectCoin }) => {
                     </td>
 
                     <td className="px-2 py-3 text-left text-xs font-semibold text-white">
-                      {coin.market_cap_rank || 'N/A'}
+                      {coin.rank || 'N/A'}
                     </td>
 
                     <td className="px-2 py-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <img
-                          src={coin.image}
+                          src={coin.image || coin.icon}
                           alt={coin.name}
                           className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                           onError={(e) => e.target.src = 'https://via.placeholder.com/32'}
@@ -116,7 +116,7 @@ const WatchlistTable = ({ coins, loading, onSelectCoin }) => {
                             {coin.name}
                           </div>
                           <div className="text-xs uppercase tracking-[0.18em] text-slate-500 truncate">
-                            {coin.symbol?.toUpperCase()}
+                            {coin.symbol}
                           </div>
                         </div>
                       </div>
@@ -124,72 +124,72 @@ const WatchlistTable = ({ coins, loading, onSelectCoin }) => {
 
                     <td className="px-2 py-3 text-right">
                       <div className={`text-xs font-semibold px-2 py-1 rounded inline-block ${getPriceChangeBg(
-                        coin.price_change_percentage_1h_in_currency
-                      )} ${getPriceChangeColor(coin.price_change_percentage_1h_in_currency)}`}>
+                        coin.priceChange1h
+                      )} ${getPriceChangeColor(coin.priceChange1h)}`}>
                         <span className="flex items-center justify-end gap-1">
-                          {(coin.price_change_percentage_1h_in_currency ?? 0) > 0 ? (
+                          {(coin.priceChange1h ?? 0) > 0 ? (
                             <TrendingUp className="w-3 h-3" />
                           ) : (
                             <TrendingDown className="w-3 h-3" />
                           )}
-                          {(coin.price_change_percentage_1h_in_currency ?? 0).toFixed(1)}%
+                          {(coin.priceChange1h ?? 0).toFixed(1)}%
                         </span>
                       </div>
                     </td>
 
                     <td className="px-2 py-3 text-right">
                       <div className={`text-xs font-semibold px-2 py-1 rounded inline-block ${getPriceChangeBg(
-                        coin.price_change_percentage_24h
-                      )} ${getPriceChangeColor(coin.price_change_percentage_24h)}`}>
+                        coin.priceChange24h
+                      )} ${getPriceChangeColor(coin.priceChange24h)}`}>
                         <span className="flex items-center justify-end gap-1">
-                          {(coin.price_change_percentage_24h ?? 0) > 0 ? (
+                          {(coin.priceChange24h ?? 0) > 0 ? (
                             <TrendingUp className="w-3 h-3" />
                           ) : (
                             <TrendingDown className="w-3 h-3" />
                           )}
-                          {(coin.price_change_percentage_24h ?? 0).toFixed(1)}%
+                          {(coin.priceChange24h ?? 0).toFixed(1)}%
                         </span>
                       </div>
                     </td>
 
                     <td className="px-2 py-3 text-right">
                       <div className={`text-xs font-semibold px-2 py-1 rounded inline-block ${getPriceChangeBg(
-                        coin.price_change_percentage_7d_in_currency
-                      )} ${getPriceChangeColor(coin.price_change_percentage_7d_in_currency)}`}>
+                        coin.priceChange7d
+                      )} ${getPriceChangeColor(coin.priceChange7d)}`}>
                         <span className="flex items-center justify-end gap-1">
-                          {(coin.price_change_percentage_7d_in_currency ?? 0) > 0 ? (
+                          {(coin.priceChange7d ?? 0) > 0 ? (
                             <TrendingUp className="w-3 h-3" />
                           ) : (
                             <TrendingDown className="w-3 h-3" />
                           )}
-                          {(coin.price_change_percentage_7d_in_currency ?? 0).toFixed(1)}%
+                          {(coin.priceChange7d ?? 0).toFixed(1)}%
                         </span>
                       </div>
                     </td>
 
                     <td className="px-2 py-3 text-right text-sm font-semibold text-white">
-                      ${coin.current_price?.toLocaleString('en-US', {
+                      ${coin.price?.toLocaleString('en-US', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       }) || 'N/A'}
                     </td>
 
                     <td className="px-2 py-3 text-right text-sm text-slate-300">
-                      ${((coin.market_cap || 0) / 1000000).toFixed(0)}M
+                      ${((coin.marketCap || 0) / 1000000).toFixed(0)}M
                     </td>
 
                     <td className="px-2 py-3 text-right text-sm text-slate-300">
-                      ${((coin.total_volume || 0) / 1000000).toFixed(0)}M
+                      ${((coin.volume || 0) / 1000000).toFixed(0)}M
                     </td>
 
                     <td className="px-2 py-3 text-center">
                       <div className="w-full h-10 mx-auto max-w-[100px]">
-                        {coin.sparkline_in_7d?.price && coin.sparkline_in_7d.price.length > 0 ? (
+                        {coin.sparkline && coin.sparkline.length > 0 ? (
                           <Sparkline
                             coin={coin}
-                            data={coin.sparkline_in_7d.price}
+                            data={coin.sparkline}
                             color={
-                              (coin.price_change_percentage_7d_in_currency ?? 0) > 0
+                              (coin.priceChange7d ?? 0) > 0
                                 ? '#10b981'
                                 : '#f43f5e'
                             }

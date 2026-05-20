@@ -141,31 +141,23 @@ export const useAuthStore = create(
         if (authStatus === 'loading') return;
         
         if (!accessToken) {
-          console.log('[Auth] No persisted token found');
           set({ authStatus: 'unauthenticated' });
           return;
         }
         set({ authStatus: 'loading' });
         try {
-          console.log('[Auth] Restoring session...');
           const { data: user } = await apiClient.get('/auth/me', {
             headers: { Authorization: `Bearer ${accessToken}` },
           });
-          console.log('[Auth] Session restored for:', user.email);
           set({ user, authStatus: 'authenticated' });
         } catch (err) {
-          console.error('[Auth] Restore failed:', err.response?.status || err.message);
           if (err.response?.status === 401) {
-            console.log('[Auth] Attempting token refresh...');
             const newToken = await get().refreshSession();
             if (!newToken) {
-              console.log('[Auth] Refresh failed, logging out');
               set({ authStatus: 'unauthenticated' });
-            } else {
-              console.log('[Auth] Refresh succeeded');
             }
           } else {
-            console.log('[Auth] Network error or 404, assuming valid to avoid logout');
+            // Network error / 5xx — keep user logged in to avoid jarring logout
             set({ authStatus: 'authenticated' });
           }
         } finally {

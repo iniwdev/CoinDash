@@ -4,6 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { queryClient } from '@/lib/queryClient'
 import "@/app/index.css";
+import "@/styles/shimmer.css";
 import App from "@/app/App";
 import { AiProvider } from "@/context/AiContext";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";

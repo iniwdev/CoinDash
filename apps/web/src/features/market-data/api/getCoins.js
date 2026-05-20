@@ -1,81 +1,31 @@
+/**
+ * getCoins.js
+ *
+ * Fetches the top-100 coins from the market API (FastAPI → CoinGecko proxy)
+ * and normalizes every coin through the canonical normalizeCoin contract.
+ *
+ * All consumers of useCoins() receive a consistent coin shape regardless of
+ * whether the backend returned live CoinGecko data or the mock rate-limit fallback.
+ */
 import apiClient from '@/lib/apiClient';
-
-/**
- * Normalizes coin data from CoinStats format
- */
-const normalizeCoinStats = (coin, index) => ({
-  id: coin.id || `coin-${index}`,
-  rank: coin.rank ?? index + 1,
-  name: coin.name || 'Unknown',
-  symbol: coin.symbol || '---',
-  price: typeof coin.price === 'number' ? coin.price : 0,
-  priceChange1h: typeof coin.priceChange1h === 'number' ? coin.priceChange1h : 0,
-  priceChange24h: typeof coin.priceChange24h === 'number' ? coin.priceChange24h : coin.priceChange1d ?? 0,
-  priceChange7d: typeof coin.priceChange7d === 'number' ? coin.priceChange7d : coin.priceChange1w ?? 0,
-  marketCap: coin.marketCap ?? 0,
-  volume: coin.volume ?? 0,
-  icon: coin.icon || coin.image || coin.iconUrl || '',
-  sparkline: Array.isArray(coin.sparkline) ? coin.sparkline : [],
-});
-
-/**
- * Normalizes coin data from CoinGecko format
- */
-const normalizeCoinGecko = (coin, index) => {
-  const priceChange24h = typeof coin.price_change_percentage_24h === 'number' ? coin.price_change_percentage_24h : 0;
-  const marketCap = typeof coin.market_cap === 'number' ? coin.market_cap : 0;
-  const volume = typeof coin.total_volume === 'number' ? coin.total_volume : 0;
-  
-  return {
-    id: coin.id || `coin-${index}`,
-    rank: coin.market_cap_rank ?? index + 1,
-    name: coin.name || 'Unknown',
-    symbol: (coin.symbol || '---').toUpperCase(),
-    price: typeof coin.current_price === 'number' ? coin.current_price : 0,
-    priceChange1h: typeof coin.price_change_percentage_1h_in_currency === 'number' ? coin.price_change_percentage_1h_in_currency : 0,
-    priceChange24h: priceChange24h,
-    priceChange1d: priceChange24h, // Alias for component compatibility
-    priceChange7d: typeof coin.price_change_percentage_7d_in_currency === 'number' ? coin.price_change_percentage_7d_in_currency : 0,
-    priceChange1w: typeof coin.price_change_percentage_7d_in_currency === 'number' ? coin.price_change_percentage_7d_in_currency : 0, // Alias for CoinDetails
-    marketCap: marketCap,
-    volume: volume,
-    volume24h: volume, // Alias
-    low24h: coin.low_24h ?? 0,
-    high24h: coin.high_24h ?? 0,
-    priceLow24h: coin.low_24h ?? 0,
-    priceHigh24h: coin.high_24h ?? 0,
-    totalSupply: coin.total_supply ?? 0,
-    maxSupply: coin.max_supply ?? 0,
-    circulatingSupply: coin.circulating_supply ?? 0,
-    availableSupply: coin.circulating_supply ?? 0, // Alias for CoinDetails
-    fullyDilutedValuation: coin.fully_diluted_valuation ?? (coin.total_supply ? coin.total_supply * coin.current_price : marketCap),
-    icon: coin.image || '',
-    sparkline: coin.sparkline_in_7d?.price || [],
-  };
-};
+import { normalizeCoins } from '@/lib/normalizeCoin';
 
 export const getCoins = async () => {
-  try {
-    // Route traffic through the Vite proxy to our FastAPI backend
-    const response = await apiClient.get('/market/coins/markets', {
-      params: {
-        vs_currency: 'usd',
-        order: 'market_cap_desc',
-        per_page: 100,
-        page: 1,
-        sparkline: true,
-        price_change_percentage: '1h,24h,7d'
-      }
-    });
+  const response = await apiClient.get('/market/coins/markets', {
+    params: {
+      vs_currency: 'usd',
+      order: 'market_cap_desc',
+      per_page: 100,
+      page: 1,
+      sparkline: true,
+      price_change_percentage: '1h,24h,7d',
+    },
+  });
 
-    // The backend mirrors the CoinGecko response contract (an array of coins)
-    if (!Array.isArray(response.data)) {
-      console.error('Expected array from market API, got:', typeof response.data);
-      return [];
-    }
-    return response.data.map(normalizeCoinGecko);
-  } catch (error) {
-    console.error('API fetch failure:', error);
-    throw error;
+  if (!Array.isArray(response.data)) {
+    console.error('[getCoins] Expected array from market API, got:', typeof response.data);
+    return [];
   }
+
+  return normalizeCoins(response.data);
 };

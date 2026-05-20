@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { AreaChart, Area, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
+import { useAnimatedCounter } from '@/hooks/useAnimatedCounter';
 
 const dummySparklineData = [
   { value: 40 }, { value: 30 }, { value: 45 }, { value: 50 }, { value: 35 }, { value: 60 }, { value: 55 }, { value: 70 }
@@ -11,7 +12,7 @@ const dummyBarData = [
 
 const cinematicCard = "lg:col-span-1 rounded-2xl bg-[#0A0E17]/80 backdrop-blur-2xl border border-white/[0.05] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.4)] p-5 flex flex-col justify-between overflow-hidden relative group transition-all duration-500 hover:bg-[#0A0E17]/90 hover:border-white/[0.08] hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),0_16px_48px_rgba(0,0,0,0.5)]";
 const labelBase = "text-[10px] font-bold tracking-widest text-[#64748B] uppercase";
-const valueBase = "text-xl xl:text-2xl 2xl:text-[28px] font-semibold tracking-tight text-white drop-shadow-[0_2px_12px_rgba(255,255,255,0.1)] truncate block w-full";
+const valueBase = "text-[18px] lg:text-[20px] xl:text-[24px] font-bold tracking-tight text-white drop-shadow-[0_2px_12px_rgba(255,255,255,0.1)] whitespace-nowrap";
 
 const formatLargeCurrency = (value) => {
   if (value === undefined || value === null) return '$0.00';
@@ -22,12 +23,18 @@ const formatLargeCurrency = (value) => {
 };
 
 export default function PortfolioSummary({ summary, holdings, isLoading }) {
+  // Animated counter hooks — always called (rules of hooks)
+  const animTotalValue    = useAnimatedCounter(Number(summary?.total_value    ?? 0), 1200, 2);
+  const animTotalPnL      = useAnimatedCounter(Number(summary?.total_pnl      ?? 0), 1000, 2);
+  const animTotalInvested = useAnimatedCounter(Number(summary?.total_invested  ?? 0), 1100, 2);
+
   if (isLoading || !summary) {
     return (
-      // 2 cols on sm, 3 on md, 3 on lg (within the 9-col left canvas these are wide enough)
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 xl:gap-5">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 xl:gap-5">
         {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className="h-32 rounded-2xl bg-[#0A0E17]/80 animate-pulse border border-white/[0.05]" />
+          <div key={i} className="h-32 rounded-2xl overflow-hidden border border-white/[0.05] relative">
+            <div className="shimmer h-full w-full" />
+          </div>
         ))}
       </div>
     );
@@ -60,18 +67,22 @@ export default function PortfolioSummary({ summary, holdings, isLoading }) {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cinematicCard}>
         <div className="flex justify-between items-start z-10 relative">
           <p className={labelBase}>Total Portfolio Value</p>
-          <svg className="w-4 h-4 text-[#64748B]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+          {/* Pulsing LIVE dot */}
+          <span className="flex h-2 w-2 relative mt-1">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
+          </span>
         </div>
-        <div className="mt-2 z-10 relative">
-          <div className="flex items-baseline gap-2 w-full overflow-hidden">
+        <div className="mt-3 z-10 relative">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 w-full">
             <h2 className={valueBase} title={`$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}>
-              {formatLargeCurrency(totalValue)}
+              {formatLargeCurrency(animTotalValue)}
             </h2>
             <span className="text-[11px] text-[#10B981] font-bold tracking-wide drop-shadow-[0_0_8px_rgba(16,185,129,0.3)] shrink-0">↗ {change24hPct}%</span>
           </div>
           <p className="text-[11px] text-[#10B981]/80 mt-1 font-medium">+{change24hValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (24h)</p>
         </div>
-        <div className="absolute inset-x-0 bottom-0 h-16 opacity-60" style={{ filter: 'drop-shadow(0px 4px 12px rgba(139, 92, 246, 0.4))' }}>
+        <div className="absolute inset-x-0 bottom-0 h-10 opacity-40 pointer-events-none z-0" style={{ filter: 'drop-shadow(0px 4px 12px rgba(139, 92, 246, 0.4))' }}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={dummySparklineData}>
               <defs>
@@ -92,10 +103,10 @@ export default function PortfolioSummary({ summary, holdings, isLoading }) {
           <p className={labelBase}>Unrealized P&L</p>
           <svg className="w-4 h-4 text-[#64748B]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
         </div>
-        <div className="mt-2 z-10 relative">
-          <div className="flex items-baseline gap-2 w-full overflow-hidden">
+        <div className="mt-3 z-10 relative">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 w-full">
             <h2 className={`${valueBase} ${isProfit ? 'text-[#10B981] drop-shadow-[0_0_12px_rgba(16,185,129,0.3)]' : 'text-[#E11D48] drop-shadow-[0_0_12px_rgba(225,29,72,0.3)]'}`} title={`${isProfit ? '+' : ''}$${totalPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}>
-              {isProfit && totalPnL > 0 ? '+' : ''}{formatLargeCurrency(totalPnL)}
+              {isProfit && animTotalPnL > 0 ? '+' : ''}{formatLargeCurrency(animTotalPnL)}
             </h2>
             <span className={`text-[11px] font-bold tracking-wide shrink-0 ${isProfit ? 'text-[#10B981]' : 'text-[#E11D48]'}`}>
               {isProfit ? '↗' : '↘'} {pnlPct.toFixed(2)}%
@@ -105,7 +116,7 @@ export default function PortfolioSummary({ summary, holdings, isLoading }) {
             {isProfit ? '+' : '-'}$1,204.32 (24h)
           </p>
         </div>
-        <div className="absolute inset-x-0 bottom-0 h-16 opacity-60" style={{ filter: isProfit ? 'drop-shadow(0px 4px 12px rgba(16, 185, 129, 0.4))' : 'drop-shadow(0px 4px 12px rgba(225, 29, 72, 0.4))' }}>
+        <div className="absolute inset-x-0 bottom-0 h-10 opacity-40 pointer-events-none z-0" style={{ filter: isProfit ? 'drop-shadow(0px 4px 12px rgba(16, 185, 129, 0.4))' : 'drop-shadow(0px 4px 12px rgba(225, 29, 72, 0.4))' }}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={dummySparklineData}>
               <defs>
@@ -126,13 +137,15 @@ export default function PortfolioSummary({ summary, holdings, isLoading }) {
           <p className={labelBase}>Total Invested</p>
           <svg className="w-4 h-4 text-[#64748B]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
         </div>
-        <div className="mt-2 z-10 relative w-full overflow-hidden">
-          <h2 className={valueBase} title={`$${totalInvested.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}>
-            {formatLargeCurrency(totalInvested)}
-          </h2>
+        <div className="mt-3 z-10 relative w-full">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 w-full">
+            <h2 className={valueBase} title={`$${totalInvested.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}>
+              {formatLargeCurrency(animTotalInvested)}
+            </h2>
+          </div>
           <p className="text-[11px] text-[#64748B] mt-1 font-medium">Avg. Cost Basis</p>
         </div>
-        <div className="absolute inset-x-0 bottom-0 h-12 px-2 flex items-end opacity-80" style={{ filter: 'drop-shadow(0px -4px 12px rgba(59, 130, 246, 0.3))' }}>
+        <div className="absolute inset-x-0 bottom-0 h-10 px-2 flex items-end opacity-40 pointer-events-none z-0" style={{ filter: 'drop-shadow(0px -4px 12px rgba(59, 130, 246, 0.3))' }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={dummyBarData}>
               <Bar dataKey="value" radius={[2, 2, 0, 0]} isAnimationActive={false}>
@@ -151,15 +164,17 @@ export default function PortfolioSummary({ summary, holdings, isLoading }) {
           <p className={labelBase}>24h Change</p>
           <svg className="w-4 h-4 text-[#64748B]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 11h10M7 15h10M7 19h10M12 7V3m0 4l-4 4m4-4l4 4" /></svg>
         </div>
-        <div className="mt-2 z-10 relative">
-          <h2 className={`${valueBase} ${is24hProfit ? 'text-[#10B981] drop-shadow-[0_0_12px_rgba(16,185,129,0.3)]' : 'text-[#E11D48] drop-shadow-[0_0_12px_rgba(225,29,72,0.3)]'}`}>
-            {is24hProfit ? '↗' : '↘'} {change24hPct.toFixed(2)}%
-          </h2>
+        <div className="mt-3 z-10 relative">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 w-full">
+            <h2 className={`${valueBase} ${is24hProfit ? 'text-[#10B981] drop-shadow-[0_0_12px_rgba(16,185,129,0.3)]' : 'text-[#E11D48] drop-shadow-[0_0_12px_rgba(225,29,72,0.3)]'}`}>
+              {is24hProfit ? '↗' : '↘'} {change24hPct.toFixed(2)}%
+            </h2>
+          </div>
           <p className={`text-[11px] font-medium mt-1 ${is24hProfit ? 'text-[#10B981]/80' : 'text-[#E11D48]/80'}`}>
             {is24hProfit ? '+' : '-'}${change24hValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         </div>
-        <div className="absolute inset-x-0 bottom-0 h-16 opacity-60" style={{ filter: is24hProfit ? 'drop-shadow(0px 4px 12px rgba(16, 185, 129, 0.4))' : 'drop-shadow(0px 4px 12px rgba(225, 29, 72, 0.4))' }}>
+        <div className="absolute inset-x-0 bottom-0 h-10 opacity-40 pointer-events-none z-0" style={{ filter: is24hProfit ? 'drop-shadow(0px 4px 12px rgba(16, 185, 129, 0.4))' : 'drop-shadow(0px 4px 12px rgba(225, 29, 72, 0.4))' }}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={dummySparklineData}>
               <defs>

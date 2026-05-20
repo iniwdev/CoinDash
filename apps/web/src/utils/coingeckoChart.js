@@ -125,13 +125,6 @@ export const fetchChartData = async (coinGeckoId) => {
     }
 
     const formatted = formatChartData(data.prices);
-    
-    // Debug: log data structure
-    console.log(`Fetched ${formatted.length} price points for ${coinGeckoId}:`, {
-      firstPrice: formatted[0],
-      lastPrice: formatted[formatted.length - 1],
-    });
-
     return formatted;
   } catch (error) {
     console.error(`Failed to fetch chart data for ${coinGeckoId}:`, error);
@@ -150,26 +143,17 @@ export const fetchChartsForCoins = async (coins, limit = 20) => {
   try {
     await Promise.all(
       coinsToFetch.map(async (coin, index) => {
-        console.log('Fetching:', coin.symbol, coin.name);
         await delay(index * 300);
 
         const geckoId = getCoinGeckoId(coin);
         const chartData = await fetchChartData(geckoId);
 
-        if (!Array.isArray(chartData) || chartData.length === 0) {
-          console.warn('FAILED:', coin.symbol, coin.name, geckoId);
-          chartsData[coin.symbol] = [];
-        } else {
-          chartsData[coin.symbol] = chartData;
-        }
-
-        console.log('Data:', coin.symbol, chartData?.length ?? 0);
+        chartsData[coin.symbol] = Array.isArray(chartData) ? chartData : [];
       })
     );
   } catch (error) {
     console.error('Error fetching charts:', error);
   }
 
-  console.log('Charts loaded:', chartsData);
   return chartsData;
 };

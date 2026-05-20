@@ -25,7 +25,6 @@ function App() {
   // Validate persisted token once on app boot (after hydration)
   useEffect(() => {
     if (hasHydrated) {
-      console.log('[App] Store hydrated, restoring session...');
       
       // Safeguard: force unauthenticated if restoration hangs for > 10s
       const timeout = setTimeout(() => {

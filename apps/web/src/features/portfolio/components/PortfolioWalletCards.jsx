@@ -95,10 +95,7 @@ const PortfolioWalletCards = () => {
           </div>
           <button
             type="button"
-            onClick={() => {
-              console.log('AI badge clicked');
-              openAiModal();
-            }}
+            onClick={() => openAiModal()}
             className="rounded-full bg-sky-400/10 px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-sky-200 hover:bg-sky-400/20 transition-colors cursor-pointer"
           >
             AI

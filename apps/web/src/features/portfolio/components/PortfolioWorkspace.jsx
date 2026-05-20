@@ -2,11 +2,11 @@ import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import PortfolioSummary from './PortfolioSummary';
-import PortfolioPerformanceChart from './PortfolioPerformanceChart';
-import HoldingsTable from './HoldingsTable';
+import HeroChartV2 from './HeroChartV2';
+import EnhancedHoldingsTableV2 from './EnhancedHoldingsTableV2';
 import ActivityTimeline from './ActivityTimeline';
 import TradeModal from './modals/TradeModal';
-import AiInsightFeed from './AiInsightFeed';
+import AiInsightRailV2 from './AiInsightRailV2';
 import MarketSnapshot from './MarketSnapshot';
 
 export default function PortfolioWorkspace() {
@@ -110,7 +110,7 @@ export default function PortfolioWorkspace() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <PortfolioPerformanceChart summary={summary} />
+              <HeroChartV2 />
             </motion.div>
 
             {/* 3. Enhanced Holdings Table
@@ -123,7 +123,7 @@ export default function PortfolioWorkspace() {
               transition={{ delay: 0.3 }}
               className="min-w-0"
             >
-              <HoldingsTable holdings={holdings} isLoading={isLoading} />
+              <EnhancedHoldingsTableV2 holdings={holdings} isLoading={isLoading} />
             </motion.div>
 
           </div>
@@ -145,9 +145,9 @@ export default function PortfolioWorkspace() {
                 msOverflowStyle: 'none',
               }}
             >
-              <AiInsightFeed />
-              <MarketSnapshot />
-              <ActivityTimeline />
+              <div className="shrink-0"><AiInsightRailV2 /></div>
+              <div className="shrink-0"><MarketSnapshot /></div>
+              <div className="shrink-0"><ActivityTimeline /></div>
             </div>
           </div>
 

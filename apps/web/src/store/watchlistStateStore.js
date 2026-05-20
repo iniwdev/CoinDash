@@ -1,49 +1,58 @@
+/**
+ * watchlistStateStore.js — CoinDash AI
+ *
+ * Manages UI-level watchlist state:
+ *   - Named watchlist groups (Main Portfolio, DeFi, etc.)
+ *   - Per-coin notes
+ *   - Client-side price alerts (threshold triggers)
+ *
+ * This is SEPARATE from useWatchlistStore which persists the actual coin
+ * objects and drives the live market data fetch. This store is purely for
+ * UI organization state (grouping, annotations, alerts).
+ */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export const useWatchlistState = create(
   persist(
     (set, get) => ({
+      // ── Named watchlists (UI grouping) ──────────────────────────────────────
       watchlists: [
         {
           id: 'main',
           name: 'Main Portfolio',
-          coins: ['bitcoin', 'ethereum', 'solana'],
+          coins: [],
           createdAt: new Date().toISOString(),
-        }
+        },
       ],
       activeWatchlistId: 'main',
-      alerts: [],
-      notes: {},
 
       setActiveWatchlistId: (id) => set({ activeWatchlistId: id }),
 
       getActiveWatchlist: () => {
         const state = get();
-        return state.watchlists.find((w) => w.id === state.activeWatchlistId);
+        return state.watchlists.find((w) => w.id === state.activeWatchlistId) ?? null;
       },
 
       addCoinToWatchlist: (coinId, watchlistId) => {
         const targetId = watchlistId || get().activeWatchlistId;
         set((state) => ({
-          watchlists: state.watchlists.map((w) => {
-            if (w.id === targetId && !w.coins.includes(coinId)) {
-              return { ...w, coins: [...w.coins, coinId] };
-            }
-            return w;
-          })
+          watchlists: state.watchlists.map((w) =>
+            w.id === targetId && !w.coins.includes(coinId)
+              ? { ...w, coins: [...w.coins, coinId] }
+              : w
+          ),
         }));
       },
 
       removeCoinFromWatchlist: (coinId, watchlistId) => {
         const targetId = watchlistId || get().activeWatchlistId;
         set((state) => ({
-          watchlists: state.watchlists.map((w) => {
-            if (w.id === targetId) {
-              return { ...w, coins: w.coins.filter((c) => c !== coinId) };
-            }
-            return w;
-          })
+          watchlists: state.watchlists.map((w) =>
+            w.id === targetId
+              ? { ...w, coins: w.coins.filter((c) => c !== coinId) }
+              : w
+          ),
         }));
       },
 
@@ -56,30 +65,34 @@ export const useWatchlistState = create(
         };
         set((state) => ({
           watchlists: [...state.watchlists, newWatchlist],
-          activeWatchlistId: newWatchlist.id
+          activeWatchlistId: newWatchlist.id,
         }));
         return newWatchlist;
       },
 
       renameWatchlist: (watchlistId, newName) => {
         set((state) => ({
-          watchlists: state.watchlists.map((w) => (w.id === watchlistId ? { ...w, name: newName } : w))
+          watchlists: state.watchlists.map((w) =>
+            w.id === watchlistId ? { ...w, name: newName } : w
+          ),
         }));
       },
 
       deleteWatchlist: (watchlistId) => {
         set((state) => {
-          const newWatchlists = state.watchlists.filter((w) => w.id !== watchlistId);
-          let newActiveId = state.activeWatchlistId;
-          if (state.activeWatchlistId === watchlistId) {
-            newActiveId = newWatchlists[0]?.id || null;
-          }
+          const remaining = state.watchlists.filter((w) => w.id !== watchlistId);
           return {
-            watchlists: newWatchlists,
-            activeWatchlistId: newActiveId
+            watchlists: remaining,
+            activeWatchlistId:
+              state.activeWatchlistId === watchlistId
+                ? (remaining[0]?.id ?? null)
+                : state.activeWatchlistId,
           };
         });
       },
+
+      // ── Price alerts ────────────────────────────────────────────────────────
+      alerts: [],
 
       addAlert: (coinId, type, value) => {
         const newAlert = {
@@ -95,36 +108,35 @@ export const useWatchlistState = create(
       },
 
       removeAlert: (alertId) => {
-        set((state) => ({ alerts: state.alerts.filter((a) => a.id !== alertId) }));
-      },
-
-      addNote: (coinId, note) => {
         set((state) => ({
-          notes: { ...state.notes, [coinId]: note }
+          alerts: state.alerts.filter((a) => a.id !== alertId),
         }));
       },
 
-      removeNote: (coinId) => {
-        set((state) => {
-          const newNotes = { ...state.notes };
-          delete newNotes[coinId];
-          return { notes: newNotes };
-        });
+      getAlertsForCoin: (coinId) => {
+        return get().alerts.filter((a) => a.coinId === coinId);
       },
 
-      getNote: (coinId) => get().notes[coinId] || '',
+      // ── Per-coin notes ──────────────────────────────────────────────────────
+      notes: {},
 
-      getAlertsForCoin: (coinId) => get().alerts.filter((a) => a.coinId === coinId),
+      addNote: (coinId, text) => {
+        set((state) => ({
+          notes: { ...state.notes, [coinId]: text },
+        }));
+      },
 
-      isCoinInWatchlist: (coinId, watchlistId) => {
-        const state = get();
-        const targetId = watchlistId || state.activeWatchlistId;
-        const watchlist = state.watchlists.find((w) => w.id === targetId);
-        return watchlist?.coins.includes(coinId) || false;
+      getNote: (coinId) => get().notes[coinId] ?? '',
+
+      removeNote: (coinId) => {
+        set((state) => {
+          const { [coinId]: _, ...rest } = state.notes;
+          return { notes: rest };
+        });
       },
     }),
     {
-      name: 'coindash-watchlist-complex',
+      name: 'coindash-watchlist-state',
       version: 1,
     }
   )
