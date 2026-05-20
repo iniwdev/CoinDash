@@ -233,6 +233,19 @@ export default function CoinDetails() {
           <div className="flex h-full items-center justify-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500" />
           </div>
+        ) : chartData.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+            <div className="text-4xl opacity-30">📈</div>
+            <p className="text-sm text-slate-500">Chart data unavailable</p>
+            <p className="text-xs text-slate-600">CoinGecko may be rate-limited. Try again in a moment.</p>
+            <button
+              type="button"
+              onClick={fetchChart}
+              className="mt-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/10"
+            >
+              Retry
+            </button>
+          </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             {(() => {
@@ -270,6 +283,7 @@ export default function CoinDetails() {
                   <stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
                 </linearGradient>
               </defs>
+
 
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" vertical={false} opacity={0.08} />
               <XAxis

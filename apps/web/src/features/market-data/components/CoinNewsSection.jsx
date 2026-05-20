@@ -162,13 +162,24 @@ const CoinNewsSection = ({ coin }) => {
     });
   };
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL
+    ? import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '')
+    : '';
+
   const fetchComprehensiveNews = async (coinName, coinSymbol) => {
     const query = encodeURIComponent(coinName || coinSymbol || 'crypto');
-    const response = await fetch(`/api/news?coin=${query}`);
+    const url = `${API_BASE}/api/v1/news/?coin=${query}`;
+    const response = await fetch(url);
+
+    // Guard: HTML response means proxy/server error — don't parse as JSON
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      throw new Error(`News server returned non-JSON response (status ${response.status}). Backend may be starting up.`);
+    }
 
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({}));
-      throw new Error(errorBody.error || 'News API returned an error');
+      throw new Error(errorBody.detail || errorBody.error || `News API error: ${response.status}`);
     }
 
     const data = await response.json();

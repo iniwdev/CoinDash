@@ -16,19 +16,35 @@ const formatComparisonLabel = (timestamp, range) => {
   return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 };
 
+// Build the absolute API base URL — works in local dev AND on Vercel/Cloudflare
+// In dev: VITE_API_BASE_URL is usually http://localhost:8000
+// In prod: VITE_API_BASE_URL is https://coindash.onrender.com
+const API_BASE = import.meta.env.VITE_API_BASE_URL
+  ? import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '')
+  : '';
+
 export const fetchComparisonHistory = async (coinId, vsCurrency, days) => {
   try {
-    const response = await fetch(
-      `/api/market/coins/${coinId}/market_chart?vs_currency=${vsCurrency}&days=${days}`
-    );
-    if (!response.ok) throw new Error(`Market chart request failed for ${vsCurrency}`);
+    const url = `${API_BASE}/api/v1/market/coins/${coinId}/market_chart?vs_currency=${vsCurrency}&days=${days}`;
+    const response = await fetch(url);
+
+    // Guard: if server returned HTML (e.g. a 404 page), don't try to parse as JSON
+    const contentType = response.headers.get('content-type') || '';
+    if (!response.ok || !contentType.includes('application/json')) {
+      console.warn(`[chart] Non-JSON response for ${coinId}/${vsCurrency}: ${response.status}`);
+      return [];
+    }
+
     const data = await response.json();
-    return Array.isArray(data.prices) ? data.prices.map(([timestamp, value]) => [timestamp, Number(value)]) : [];
+    return Array.isArray(data.prices)
+      ? data.prices.map(([timestamp, value]) => [timestamp, Number(value)])
+      : [];
   } catch (err) {
-    console.warn(err);
+    console.warn(`[chart] fetchComparisonHistory failed for ${coinId}/${vsCurrency}:`, err.message);
     return [];
   }
 };
+
 
 export const mergeComparisonChartData = (seriesByCurrency, range) => {
   const allTimestamps = new Set();
