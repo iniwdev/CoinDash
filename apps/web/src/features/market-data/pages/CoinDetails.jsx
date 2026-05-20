@@ -870,13 +870,35 @@ export default function CoinDetails() {
                       <p className="text-xs text-slate-400">Vol / Mkt</p>
                       <p className="mt-1 text-sm font-medium text-white truncate">{coin.marketCap ? `${((coin.volume / coin.marketCap) * 100).toFixed(1)}%` : '-'}</p>
                     </div>
-                    <div className="rounded-lg bg-slate-900/50 p-3 min-w-0">
-                      <p className="text-xs text-slate-400">Total Supply</p>
-                      <p className="mt-1 text-sm font-medium text-white truncate">{formatNumber(coin.totalSupply ?? coin.availableSupply)}</p>
+                  </div>
+
+                  <div className="mt-2 rounded-lg bg-slate-900/50 p-3 min-w-0">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs text-slate-400">Supply Distribution</p>
+                      {coin.circulatingSupply && coin.totalSupply ? (
+                        <span className="text-[10px] font-medium text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">
+                          {((coin.circulatingSupply / coin.totalSupply) * 100).toFixed(1)}% Circulated
+                        </span>
+                      ) : null}
                     </div>
-                    <div className="rounded-lg bg-slate-900/50 p-3 min-w-0">
-                      <p className="text-xs text-slate-400">Circulating</p>
-                      <p className="mt-1 text-sm font-medium text-white truncate">{formatNumber(coin.availableSupply)}</p>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-500">Circulating</span>
+                        <span className="font-medium text-white">{coin.circulatingSupply ? formatNumber(coin.circulatingSupply) : '—'}</span>
+                      </div>
+                      
+                      <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-emerald-500 rounded-full" 
+                          style={{ width: `${coin.circulatingSupply && coin.totalSupply ? Math.min(100, (coin.circulatingSupply / coin.totalSupply) * 100) : 0}%` }}
+                        />
+                      </div>
+                      
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-500">Total / Max</span>
+                        <span className="font-medium text-white">{coin.totalSupply ? formatNumber(coin.totalSupply) : (coin.maxSupply ? formatNumber(coin.maxSupply) : '—')}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
