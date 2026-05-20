@@ -34,10 +34,21 @@ function ServerWakeupBanner() {
     let timerIntervalId;
 
     const ping = async () => {
+      // If any API query has successfully loaded, the server is awake! Auto-hide immediately.
+      if (typeof window !== 'undefined' && window.isServerAwake) {
+        setWaking(false);
+        clearInterval(intervalId);
+        clearInterval(timerIntervalId);
+        return;
+      }
+
       attempts++;
       try {
         const res = await fetch(`${apiBase}/health`, { signal: AbortSignal.timeout(4000) });
         if (res.ok) {
+          if (typeof window !== 'undefined') {
+            window.isServerAwake = true;
+          }
           setWaking(false);
           clearInterval(intervalId);
           clearInterval(timerIntervalId);

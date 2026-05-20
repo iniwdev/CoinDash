@@ -38,7 +38,12 @@ let _refreshPromise = null;
 
 // ── Response interceptor: silent refresh on 401 ───────────────────────────────
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (typeof window !== 'undefined') {
+      window.isServerAwake = true;
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
 
