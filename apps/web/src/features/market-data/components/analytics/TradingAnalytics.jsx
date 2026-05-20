@@ -98,50 +98,58 @@ const TradingAnalytics = ({ coin, technicalData }) => {
       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_200px]">
         <div className="rounded-xl bg-slate-900/80 p-3">
           <div className="h-[200px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="analyticsChartGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="rgba(148,163,184,0.08)" vertical={false} />
-                <XAxis
-                  dataKey="time"
-                  tick={{ fill: '#94a3b8', fontSize: 10 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fill: '#94a3b8', fontSize: 10 }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={35}
-                  tickFormatter={(value) => `$${value.toLocaleString()}`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#0f172a',
-                    border: '1px solid rgba(148,163,184,0.16)',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                  }}
-                  labelStyle={{ color: '#cbd5e1' }}
-                  formatter={(value) => [`$${value.toLocaleString()}`, "Price"]}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#f59e0b"
-                  strokeWidth={1.5}
-                  fill="url(#analyticsChartGradient)"
-                  dot={false}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="analyticsChartGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="rgba(148,163,184,0.08)" vertical={false} />
+                  <XAxis
+                    dataKey="time"
+                    tick={{ fill: '#94a3b8', fontSize: 10 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fill: '#94a3b8', fontSize: 10 }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={35}
+                    tickFormatter={(value) => `$${value.toLocaleString()}`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#0f172a',
+                      border: '1px solid rgba(148,163,184,0.16)',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                    }}
+                    labelStyle={{ color: '#cbd5e1' }}
+                    formatter={(value) => [`$${value.toLocaleString()}`, "Price"]}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#f59e0b"
+                    strokeWidth={1.5}
+                    fill="url(#analyticsChartGradient)"
+                    dot={false}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+                <div className="text-2xl opacity-20">📊</div>
+                <p className="text-xs text-slate-600">Insufficient price history</p>
+              </div>
+            )}
           </div>
         </div>
+
 
         <div className="grid gap-2">
           {metrics.map((metric) => (

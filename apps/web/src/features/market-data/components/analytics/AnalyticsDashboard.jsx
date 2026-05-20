@@ -35,46 +35,51 @@ const AnalyticsDashboard = ({ coin }) => {
     const fetchAllData = async () => {
       setLoading(true);
       try {
-        // Fetch coin-specific data, global data, and fear&greed in parallel
-        const [marketData, globalRes, fearGreedRes, pricesRes] = await Promise.all([
+        // Use allSettled so a single rate-limited or failed call doesn't crash everything
+        const [marketRes, globalRes, fearGreedRes, pricesRes] = await Promise.allSettled([
           fetchCoinMarketData(coin.id),
           fetchGlobalData(),
           fetchFearGreedIndex(),
           fetchCoinHistoricalPrices(coin.id, 90),
         ]);
 
-        setCoinData(marketData);
-        setGlobalData(globalRes);
-        setFearGreed(fearGreedRes);
+        const marketData = marketRes.status === 'fulfilled' ? marketRes.value : null;
+        const globalData  = globalRes.status  === 'fulfilled' ? globalRes.value  : null;
+        const fearGreed   = fearGreedRes.status === 'fulfilled' ? fearGreedRes.value : null;
+        const prices      = pricesRes.status === 'fulfilled' ? pricesRes.value : [];
 
-        // Calculate technical indicators from prices
-        if (pricesRes?.length >= 26) {
-          const rsi = calculateRSI(pricesRes);
-          const macd = calculateMACD(pricesRes);
-          const sma = calculateSMA(pricesRes);
-          const ema = calculateEMA(pricesRes);
-          const bb = calculateBollingerBands(pricesRes);
-          const volatility = calculateVolatility(pricesRes);
-          const trend = determineTrend(rsi, macd, sma, ema, pricesRes[pricesRes.length - 1]);
+        if (marketRes.status === 'rejected')  console.warn('[Analytics] marketData failed:', marketRes.reason);
+        if (globalRes.status === 'rejected')  console.warn('[Analytics] globalData failed:', globalRes.reason);
+        if (pricesRes.status === 'rejected')  console.warn('[Analytics] priceHistory failed:', pricesRes.reason);
+
+        setCoinData(marketData);
+        setGlobalData(globalData);
+        setFearGreed(fearGreed);
+
+        // Calculate technical indicators only if we have enough price history
+        if (Array.isArray(prices) && prices.length >= 26) {
+          const rsi = calculateRSI(prices);
+          const macd = calculateMACD(prices);
+          const sma = calculateSMA(prices);
+          const ema = calculateEMA(prices);
+          const bb = calculateBollingerBands(prices);
+          const volatility = calculateVolatility(prices);
+          const trend = determineTrend(rsi, macd, sma, ema, prices[prices.length - 1]);
 
           setTechnicalData({
-            rsi,
-            macd,
-            sma,
-            ema,
-            bb,
-            volatility,
-            trend,
-            currentPrice: pricesRes[pricesRes.length - 1],
-            priceHistory: pricesRes,
+            rsi, macd, sma, ema, bb, volatility, trend,
+            currentPrice: prices[prices.length - 1],
+            priceHistory: prices,
           });
         }
 
-        // Fetch coin-specific news
-        const coinNews = await fetchCoinNews(coin.id, 3);
-        setNews(coinNews);
+        // Fetch news separately (non-blocking — don't let it stall the dashboard)
+        fetchCoinNews(coin.id, 3)
+          .then(setNews)
+          .catch((e) => console.warn('[Analytics] news fetch failed:', e));
+
       } catch (err) {
-        console.error('Error fetching analytics data:', err);
+        console.error('[Analytics] Unexpected error:', err);
       } finally {
         setLoading(false);
       }
