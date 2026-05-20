@@ -7,11 +7,11 @@ from src.db.redis import get_or_set
 logger = logging.getLogger(__name__)
 
 COINGECKO_BASE = "https://api.coingecko.com/api/v3"
-MARKET_CACHE_TTL = 300      # 5 minutes
-CHART_CACHE_TTL = 300       # 5 minutes
-DETAIL_CACHE_TTL = 600      # 10 minutes
-EXCHANGE_CACHE_TTL = 1800   # 30 minutes (exchanges don't change as fast as prices)
-GLOBAL_CACHE_TTL = 600      # 10 minutes
+MARKET_CACHE_TTL = 600      # 10 minutes
+CHART_CACHE_TTL = 1800      # 30 minutes (CoinGecko free tier rate limit guard)
+DETAIL_CACHE_TTL = 1200     # 20 minutes
+EXCHANGE_CACHE_TTL = 7200  # 2 hours (exchanges rarely change)
+GLOBAL_CACHE_TTL = 1200     # 20 minutes
 
 # ── Legacy Mock Data Fallback ────────────────────────────────────────────────
 def _get_mock_market_data(limit: int = 20) -> list[dict]:
@@ -124,25 +124,26 @@ async def get_coin_chart(
             params: dict = {"vs_currency": vs_currency, "days": days}
             if interval:
                 params["interval"] = interval
-            async with httpx.AsyncClient(timeout=10) as client:
+            async with httpx.AsyncClient(timeout=15) as client:
                 resp = await client.get(
                     f"{COINGECKO_BASE}/coins/{coin_id}/market_chart",
                     params=params,
                 )
             if resp.status_code == 429:
-                # The legacy API threw an error or served stale cache.
-                # get_or_set handles stale cache internally, but on first failure we must throw.
-                raise ExternalAPIError("Rate limited by CoinGecko API")
-                
+                logger.warning("CoinGecko chart rate limited for %s. Returning empty.", coin_id)
+                return {"prices": [], "market_caps": [], "total_volumes": []}
+
             resp.raise_for_status()
             return resp.json()
-            
+
         except ExternalAPIError:
             raise
         except httpx.HTTPStatusError as exc:
-            raise ExternalAPIError(f"CoinGecko API error: {exc.response.status_code}") from exc
+            logger.error("CoinGecko chart API error for %s: %s", coin_id, exc.response.status_code)
+            return {"prices": [], "market_caps": [], "total_volumes": []}
         except Exception as exc:
-            raise ExternalAPIError("Failed to fetch market chart data") from exc
+            logger.error("Chart proxy error for %s: %s", coin_id, exc)
+            return {"prices": [], "market_caps": [], "total_volumes": []}
 
     return await get_or_set(cache_key, CHART_CACHE_TTL, fetch)
 

@@ -4,27 +4,37 @@ from uuid import UUID
 from typing import List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.redis import get_redis
 from src.modules.intelligence import schemas
 
 # Cache TTL constants
-CACHE_TTL_INSIGHTS = 300  # 5 minutes
-CACHE_TTL_SCORES = 600    # 10 minutes
-CACHE_TTL_MARKET = 60     # 1 minute
-CACHE_TTL_SPARKLINE = 3600 # 1 hour
+CACHE_TTL_INSIGHTS = 600   # 10 minutes
+CACHE_TTL_SCORES = 1200    # 20 minutes
+CACHE_TTL_MARKET = 300     # 5 minutes
+CACHE_TTL_SPARKLINE = 7200 # 2 hours
+
+
+def _try_get_redis():
+    """Return Redis client or None if unavailable."""
+    try:
+        from src.db.redis import get_redis
+        return get_redis()
+    except Exception:
+        return None
 
 async def get_portfolio_insights(db: AsyncSession, user_id: UUID) -> List[schemas.Insight]:
     """
     Generate or retrieve AI insights for the user's portfolio.
     Uses Redis caching to prevent redundant LLM generation calls.
     """
-    redis = get_redis()
-    cache_key = f"intelligence:insights:{str(user_id)}"
-    
-    cached = await redis.get(cache_key)
-    if cached:
-        data = json.loads(cached)
-        return [schemas.Insight(**item) for item in data]
+    redis = _try_get_redis()
+    if redis:
+        try:
+            cached = await redis.get(f"intelligence:insights:{str(user_id)}")
+            if cached:
+                data = json.loads(cached)
+                return [schemas.Insight(**item) for item in data]
+        except Exception:
+            pass
 
     # In production, this would query the portfolio holdings and pass them to an LLM chain.
     # For now, we generate a highly relevant mock response based on the frontend's needs.
@@ -50,18 +60,24 @@ async def get_portfolio_insights(db: AsyncSession, user_id: UUID) -> List[schema
             icon="⚡"
         )
     ]
-    
-    await redis.setex(cache_key, CACHE_TTL_INSIGHTS, json.dumps([i.model_dump() for i in insights]))
+
+    if redis:
+        try:
+            await redis.setex(f"intelligence:insights:{str(user_id)}", CACHE_TTL_INSIGHTS, json.dumps([i.model_dump() for i in insights]))
+        except Exception:
+            pass
     return insights
 
 async def get_portfolio_scores(db: AsyncSession, user_id: UUID) -> schemas.IntelligenceScores:
     """Calculate and return portfolio risk and diversification scores."""
-    redis = get_redis()
-    cache_key = f"intelligence:scores:{str(user_id)}"
-    
-    cached = await redis.get(cache_key)
-    if cached:
-        return schemas.IntelligenceScores(**json.loads(cached))
+    redis = _try_get_redis()
+    if redis:
+        try:
+            cached = await redis.get(f"intelligence:scores:{str(user_id)}")
+            if cached:
+                return schemas.IntelligenceScores(**json.loads(cached))
+        except Exception:
+            pass
 
     scores = schemas.IntelligenceScores(
         risk_score=78,
@@ -69,18 +85,24 @@ async def get_portfolio_scores(db: AsyncSession, user_id: UUID) -> schemas.Intel
         diversification_index=4.2,
         diversification_label="Low Diversification"
     )
-    
-    await redis.setex(cache_key, CACHE_TTL_SCORES, json.dumps(scores.model_dump()))
+
+    if redis:
+        try:
+            await redis.setex(f"intelligence:scores:{str(user_id)}", CACHE_TTL_SCORES, json.dumps(scores.model_dump()))
+        except Exception:
+            pass
     return scores
 
 async def get_market_snapshot() -> schemas.MarketSnapshot:
     """Get the global market macro snapshot."""
-    redis = get_redis()
-    cache_key = "intelligence:market:snapshot"
-    
-    cached = await redis.get(cache_key)
-    if cached:
-        return schemas.MarketSnapshot(**json.loads(cached))
+    redis = _try_get_redis()
+    if redis:
+        try:
+            cached = await redis.get("intelligence:market:snapshot")
+            if cached:
+                return schemas.MarketSnapshot(**json.loads(cached))
+        except Exception:
+            pass
 
     snapshot = schemas.MarketSnapshot(
         fearGreed=68,
@@ -91,19 +113,25 @@ async def get_market_snapshot() -> schemas.MarketSnapshot:
         topLoser=schemas.TopMover(symbol="ARB", change="-5.2%", price="$1.04"),
         trending=["SOL", "RNDR", "FET"]
     )
-    
-    await redis.setex(cache_key, CACHE_TTL_MARKET, json.dumps(snapshot.model_dump()))
+
+    if redis:
+        try:
+            await redis.setex("intelligence:market:snapshot", CACHE_TTL_MARKET, json.dumps(snapshot.model_dump()))
+        except Exception:
+            pass
     return snapshot
 
 async def get_asset_sparkline(coin_id: str, days: int = 7) -> schemas.SparklineResponse:
     """Generate 7-day sparkline data for a specific asset."""
-    redis = get_redis()
-    cache_key = f"intelligence:sparkline:{coin_id}:{days}"
-    
-    cached = await redis.get(cache_key)
-    if cached:
-        data = json.loads(cached)
-        return schemas.SparklineResponse(coin_id=coin_id, data=[schemas.SparklinePoint(**pt) for pt in data])
+    redis = _try_get_redis()
+    if redis:
+        try:
+            cached = await redis.get(f"intelligence:sparkline:{coin_id}:{days}")
+            if cached:
+                data = json.loads(cached)
+                return schemas.SparklineResponse(coin_id=coin_id, data=[schemas.SparklinePoint(**pt) for pt in data])
+        except Exception:
+            pass
 
     # Generate synthetic sparkline data for the terminal view
     base_value = 50.0
@@ -112,5 +140,9 @@ async def get_asset_sparkline(coin_id: str, days: int = 7) -> schemas.SparklineR
         base_value += random.uniform(-2, 2.5)
         data.append(schemas.SparklinePoint(value=max(1.0, base_value)))
 
-    await redis.setex(cache_key, CACHE_TTL_SPARKLINE, json.dumps([pt.model_dump() for pt in data]))
+    if redis:
+        try:
+            await redis.setex(f"intelligence:sparkline:{coin_id}:{days}", CACHE_TTL_SPARKLINE, json.dumps([pt.model_dump() for pt in data]))
+        except Exception:
+            pass
     return schemas.SparklineResponse(coin_id=coin_id, data=data)
