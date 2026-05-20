@@ -16,6 +16,17 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql+asyncpg://coindash:coindash_dev_password@localhost:5432/coindash"
 
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_database_url(cls, v: str) -> str:
+        if not v:
+            return v
+        if v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql+asyncpg://", 1)
+        if v.startswith("postgresql://"):
+            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v
+
     # Redis
     redis_url: str = "redis://localhost:6379/0"
 
