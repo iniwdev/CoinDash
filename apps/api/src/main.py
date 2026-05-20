@@ -26,6 +26,16 @@ async def lifespan(app: FastAPI):
     # ── Startup ───────────────────────────────────────────────────────────────
     logger.info("CoinDash API starting up — env=%s", settings.app_env)
 
+    # Automatically run database migrations on cloud boot
+    if settings.app_env == "production":
+        import subprocess
+        try:
+            logger.info("Running database migrations...")
+            subprocess.run(["alembic", "upgrade", "head"], check=True)
+            logger.info("Database migrations completed successfully.")
+        except Exception as exc:
+            logger.error("Failed to run database migrations: %s", exc)
+
     try:
         await init_redis()
         logger.info("Redis: connected ✓")
