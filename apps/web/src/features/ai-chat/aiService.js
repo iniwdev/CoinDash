@@ -60,8 +60,12 @@ export function streamChatMessage(message, { onToken, onDone, onError }) {
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
+  const baseUrl = import.meta.env.VITE_API_BASE_URL 
+    ? `${import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '')}/api/v1` 
+    : '/api/v1';
+
   // Fire the streaming fetch
-  fetch('/api/v1/ai/chat/stream', {
+  fetch(`${baseUrl}/ai/chat/stream`, {
     method: 'POST',
     headers,
     body: JSON.stringify({ message }),

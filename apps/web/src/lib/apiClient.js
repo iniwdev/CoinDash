@@ -12,8 +12,12 @@
 import axios from 'axios';
 import { useAuthStore } from '@/store/authStore';
 
+const apiBase = import.meta.env.VITE_API_BASE_URL 
+  ? `${import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '')}/api/v1` 
+  : '/api/v1';
+
 const apiClient = axios.create({
-  baseURL: '/api/v1',                 // Vite proxy handles routing to FastAPI
+  baseURL: apiBase,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
