@@ -19,6 +19,10 @@ async def init_redis() -> None:
         settings.redis_url,
         encoding="utf-8",
         decode_responses=True,
+        ssl_cert_reqs=None,
+        socket_timeout=5,
+        socket_connect_timeout=5,
+        retry_on_timeout=True,
     )
     await _redis_client.ping()
     logger.info("Redis connection established")
