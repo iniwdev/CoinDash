@@ -17,26 +17,146 @@ GLOBAL_CACHE_TTL = 1200     # 20 minutes
 def _get_mock_market_data(limit: int = 20) -> list[dict]:
     """Fallback data when CoinGecko rate limits (429). Ported from legacy API."""
     mock_coins = [
-        { "id": 'bitcoin', "symbol": 'btc', "name": 'Bitcoin', "current_price": 67234.50, "market_cap": 1324567890000, "total_volume": 34234890123, "price_change_percentage_24h_in_currency": 2.45, "price_change_percentage_24h": 2.45, "price_change_24h": 1234.56 },
-        { "id": 'ethereum', "symbol": 'eth', "name": 'Ethereum', "current_price": 3456.78, "market_cap": 415678901234, "total_volume": 23456789012, "price_change_percentage_24h_in_currency": -1.23, "price_change_percentage_24h": -1.23, "price_change_24h": -42.34 },
-        { "id": 'binancecoin', "symbol": 'bnb', "name": 'Binance Coin', "current_price": 612.34, "market_cap": 93456789012, "total_volume": 1234567890, "price_change_percentage_24h_in_currency": 0.56, "price_change_percentage_24h": 0.56, "price_change_24h": 3.45 },
-        { "id": 'ripple', "symbol": 'xrp', "name": 'Ripple', "current_price": 2.45, "market_cap": 130456789012, "total_volume": 2345678901, "price_change_percentage_24h_in_currency": 3.21, "price_change_percentage_24h": 3.21, "price_change_24h": 0.07 },
-        { "id": 'solana', "symbol": 'sol', "name": 'Solana', "current_price": 145.67, "market_cap": 61234567890, "total_volume": 3456789012, "price_change_percentage_24h_in_currency": -2.34, "price_change_percentage_24h": -2.34, "price_change_24h": -3.45 },
-        { "id": 'cardano', "symbol": 'ada', "name": 'Cardano', "current_price": 0.98, "market_cap": 35234567890, "total_volume": 456789012, "price_change_percentage_24h_in_currency": 1.23, "price_change_percentage_24h": 1.23, "price_change_24h": 0.01 },
-        { "id": 'dogecoin', "symbol": 'doge', "name": 'Dogecoin', "current_price": 0.34, "market_cap": 49234567890, "total_volume": 6789012345, "price_change_percentage_24h_in_currency": -0.45, "price_change_percentage_24h": -0.45, "price_change_24h": -0.001 },
-        { "id": 'polkadot', "symbol": 'dot', "name": 'Polkadot', "current_price": 7.89, "market_cap": 10234567890, "total_volume": 345678901, "price_change_percentage_24h_in_currency": 2.15, "price_change_percentage_24h": 2.15, "price_change_24h": 0.16 },
-        { "id": 'polygon', "symbol": 'matic', "name": 'Polygon', "current_price": 0.56, "market_cap": 5234567890, "total_volume": 234567890, "price_change_percentage_24h_in_currency": 1.67, "price_change_percentage_24h": 1.67, "price_change_24h": 0.009 },
-        { "id": 'avalanche-2', "symbol": 'avax', "name": 'Avalanche', "current_price": 34.56, "market_cap": 12234567890, "total_volume": 567890123, "price_change_percentage_24h_in_currency": -1.89, "price_change_percentage_24h": -1.89, "price_change_24h": -0.67 },
-        { "id": 'chainlink', "symbol": 'link', "name": 'Chainlink', "current_price": 28.90, "market_cap": 13456789012, "total_volume": 789012345, "price_change_percentage_24h_in_currency": 3.45, "price_change_percentage_24h": 3.45, "price_change_24h": 0.96 },
-        { "id": 'uniswap', "symbol": 'uni', "name": 'Uniswap', "current_price": 15.67, "market_cap": 5789012345, "total_volume": 234567890, "price_change_percentage_24h_in_currency": 2.34, "price_change_percentage_24h": 2.34, "price_change_24h": 0.36 },
-        { "id": 'litecoin', "symbol": 'ltc', "name": 'Litecoin', "current_price": 89.23, "market_cap": 11234567890, "total_volume": 456789012, "price_change_percentage_24h_in_currency": 0.78, "price_change_percentage_24h": 0.78, "price_change_24h": 0.70 },
-        { "id": 'stellar', "symbol": 'xlm', "name": 'Stellar', "current_price": 0.123, "market_cap": 3234567890, "total_volume": 123456789, "price_change_percentage_24h_in_currency": 1.34, "price_change_percentage_24h": 1.34, "price_change_24h": 0.0016 },
-        { "id": 'monero', "symbol": 'xmr', "name": 'Monero', "current_price": 167.45, "market_cap": 2934567890, "total_volume": 89012345, "price_change_percentage_24h_in_currency": -2.12, "price_change_percentage_24h": -2.12, "price_change_24h": -3.65 },
-        { "id": 'cosmos', "symbol": 'atom', "name": 'Cosmos', "current_price": 9.87, "market_cap": 2834567890, "total_volume": 156789012, "price_change_percentage_24h_in_currency": 1.95, "price_change_percentage_24h": 1.95, "price_change_24h": 0.19 },
-        { "id": 'helium', "symbol": 'hnt', "name": 'Helium', "current_price": 8.56, "market_cap": 1234567890, "total_volume": 89012345, "price_change_percentage_24h_in_currency": -1.56, "price_change_percentage_24h": -1.56, "price_change_24h": -0.13 },
-        { "id": 'near', "symbol": 'near', "name": 'NEAR Protocol', "current_price": 7.34, "market_cap": 1123456789, "total_volume": 234567890, "price_change_percentage_24h_in_currency": 2.45, "price_change_percentage_24h": 2.45, "price_change_24h": 0.18 },
-        { "id": 'aptos', "symbol": 'apt', "name": 'Aptos', "current_price": 12.45, "market_cap": 1023456789, "total_volume": 345678901, "price_change_percentage_24h_in_currency": -0.89, "price_change_percentage_24h": -0.89, "price_change_24h": -0.11 },
-        { "id": 'sui', "symbol": 'sui', "name": 'Sui', "current_price": 4.56, "market_cap": 834567890, "total_volume": 456789012, "price_change_percentage_24h_in_currency": 3.67, "price_change_percentage_24h": 3.67, "price_change_24h": 0.16 },
+        {
+            "id": 'bitcoin', "symbol": 'btc', "name": 'Bitcoin', "current_price": 67234.50,
+            "market_cap": 1324567890000, "total_volume": 34234890123,
+            "price_change_percentage_24h_in_currency": 2.45, "price_change_percentage_24h": 2.45,
+            "price_change_24h": 1234.56, "total_supply": 21000000, "max_supply": 21000000,
+            "circulating_supply": 19700000
+        },
+        {
+            "id": 'ethereum', "symbol": 'eth', "name": 'Ethereum', "current_price": 3456.78,
+            "market_cap": 415678901234, "total_volume": 23456789012,
+            "price_change_percentage_24h_in_currency": -1.23, "price_change_percentage_24h": -1.23,
+            "price_change_24h": -42.34, "total_supply": 120000000, "max_supply": None,
+            "circulating_supply": 120000000
+        },
+        {
+            "id": 'binancecoin', "symbol": 'bnb', "name": 'Binance Coin', "current_price": 612.34,
+            "market_cap": 93456789012, "total_volume": 1234567890,
+            "price_change_percentage_24h_in_currency": 0.56, "price_change_percentage_24h": 0.56,
+            "price_change_24h": 3.45, "total_supply": 147500000, "max_supply": 200000000,
+            "circulating_supply": 147500000
+        },
+        {
+            "id": 'ripple', "symbol": 'xrp', "name": 'Ripple', "current_price": 2.45,
+            "market_cap": 130456789012, "total_volume": 2345678901,
+            "price_change_percentage_24h_in_currency": 3.21, "price_change_percentage_24h": 3.21,
+            "price_change_24h": 0.07, "total_supply": 100000000000, "max_supply": 100000000000,
+            "circulating_supply": 55000000000
+        },
+        {
+            "id": 'solana', "symbol": 'sol', "name": 'Solana', "current_price": 145.67,
+            "market_cap": 61234567890, "total_volume": 3456789012,
+            "price_change_percentage_24h_in_currency": -2.34, "price_change_percentage_24h": -2.34,
+            "price_change_24h": -3.45, "total_supply": 578000000, "max_supply": None,
+            "circulating_supply": 461000000
+        },
+        {
+            "id": 'cardano', "symbol": 'ada', "name": 'Cardano', "current_price": 0.98,
+            "market_cap": 35234567890, "total_volume": 456789012,
+            "price_change_percentage_24h_in_currency": 1.23, "price_change_percentage_24h": 1.23,
+            "price_change_24h": 0.01, "total_supply": 45000000000, "max_supply": 45000000000,
+            "circulating_supply": 35600000000
+        },
+        {
+            "id": 'dogecoin', "symbol": 'doge', "name": 'Dogecoin', "current_price": 0.34,
+            "market_cap": 49234567890, "total_volume": 6789012345,
+            "price_change_percentage_24h_in_currency": -0.45, "price_change_percentage_24h": -0.45,
+            "price_change_24h": -0.001, "total_supply": 144000000000, "max_supply": None,
+            "circulating_supply": 144000000000
+        },
+        {
+            "id": 'polkadot', "symbol": 'dot', "name": 'Polkadot', "current_price": 7.89,
+            "market_cap": 10234567890, "total_volume": 345678901,
+            "price_change_percentage_24h_in_currency": 2.15, "price_change_percentage_24h": 2.15,
+            "price_change_24h": 0.16, "total_supply": 1430000000, "max_supply": None,
+            "circulating_supply": 1430000000
+        },
+        {
+            "id": 'polygon', "symbol": 'matic', "name": 'Polygon', "current_price": 0.56,
+            "market_cap": 5234567890, "total_volume": 234567890,
+            "price_change_percentage_24h_in_currency": 1.67, "price_change_percentage_24h": 1.67,
+            "price_change_24h": 0.009, "total_supply": 10000000000, "max_supply": 10000000000,
+            "circulating_supply": 9900000000
+        },
+        {
+            "id": 'avalanche-2', "symbol": 'avax', "name": 'Avalanche', "current_price": 34.56,
+            "market_cap": 12234567890, "total_volume": 567890123,
+            "price_change_percentage_24h_in_currency": -1.89, "price_change_percentage_24h": -1.89,
+            "price_change_24h": -0.67, "total_supply": 442000000, "max_supply": 720000000,
+            "circulating_supply": 392000000
+        },
+        {
+            "id": 'chainlink', "symbol": 'link', "name": 'Chainlink', "current_price": 28.90,
+            "market_cap": 13456789012, "total_volume": 789012345,
+            "price_change_percentage_24h_in_currency": 3.45, "price_change_percentage_24h": 3.45,
+            "price_change_24h": 0.96, "total_supply": 1000000000, "max_supply": 1000000000,
+            "circulating_supply": 587000000
+        },
+        {
+            "id": 'uniswap', "symbol": 'uni', "name": 'Uniswap', "current_price": 15.67,
+            "market_cap": 5789012345, "total_volume": 234567890,
+            "price_change_percentage_24h_in_currency": 2.34, "price_change_percentage_24h": 2.34,
+            "price_change_24h": 0.36, "total_supply": 1000000000, "max_supply": 1000000000,
+            "circulating_supply": 600000000
+        },
+        {
+            "id": 'litecoin', "symbol": 'ltc', "name": 'Litecoin', "current_price": 89.23,
+            "market_cap": 11234567890, "total_volume": 456789012,
+            "price_change_percentage_24h_in_currency": 0.78, "price_change_percentage_24h": 0.78,
+            "price_change_24h": 0.70, "total_supply": 84000000, "max_supply": 84000000,
+            "circulating_supply": 74700000
+        },
+        {
+            "id": 'stellar', "symbol": 'xlm', "name": 'Stellar', "current_price": 0.123,
+            "market_cap": 3234567890, "total_volume": 123456789,
+            "price_change_percentage_24h_in_currency": 1.34, "price_change_percentage_24h": 1.34,
+            "price_change_24h": 0.0016, "total_supply": 50000000000, "max_supply": 50000000000,
+            "circulating_supply": 29000000000
+        },
+        {
+            "id": 'monero', "symbol": 'xmr', "name": 'Monero', "current_price": 167.45,
+            "market_cap": 2934567890, "total_volume": 89012345,
+            "price_change_percentage_24h_in_currency": -2.12, "price_change_percentage_24h": -2.12,
+            "price_change_24h": -3.65, "total_supply": 18440000, "max_supply": None,
+            "circulating_supply": 18440000
+        },
+        {
+            "id": 'cosmos', "symbol": 'atom', "name": 'Cosmos', "current_price": 9.87,
+            "market_cap": 2834567890, "total_volume": 156789012,
+            "price_change_percentage_24h_in_currency": 1.95, "price_change_percentage_24h": 1.95,
+            "price_change_24h": 0.19, "total_supply": 390000000, "max_supply": None,
+            "circulating_supply": 390000000
+        },
+        {
+            "id": 'helium', "symbol": 'hnt', "name": 'Helium', "current_price": 8.56,
+            "market_cap": 1234567890, "total_volume": 89012345,
+            "price_change_percentage_24h_in_currency": -1.56, "price_change_percentage_24h": -1.56,
+            "price_change_24h": -0.13, "total_supply": 223000000, "max_supply": 223000000,
+            "circulating_supply": 160000000
+        },
+        {
+            "id": 'near', "symbol": 'near', "name": 'NEAR Protocol', "current_price": 7.34,
+            "market_cap": 1123456789, "total_volume": 234567890,
+            "price_change_percentage_24h_in_currency": 2.45, "price_change_percentage_24h": 2.45,
+            "price_change_24h": 0.18, "total_supply": 1000000000, "max_supply": 1000000000,
+            "circulating_supply": 1000000000
+        },
+        {
+            "id": 'aptos', "symbol": 'apt', "name": 'Aptos', "current_price": 12.45,
+            "market_cap": 1023456789, "total_volume": 345678901,
+            "price_change_percentage_24h_in_currency": -0.89, "price_change_percentage_24h": -0.89,
+            "price_change_24h": -0.11, "total_supply": 1100000000, "max_supply": None,
+            "circulating_supply": 430000000
+        },
+        {
+            "id": 'sui', "symbol": 'sui', "name": 'Sui', "current_price": 4.56,
+            "market_cap": 834567890, "total_volume": 456789012,
+            "price_change_percentage_24h_in_currency": 3.67, "price_change_percentage_24h": 3.67,
+            "price_change_24h": 0.16, "total_supply": 10000000000, "max_supply": 10000000000,
+            "circulating_supply": 2400000000
+        },
     ]
     return mock_coins[:limit]
 
